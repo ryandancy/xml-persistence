@@ -14,8 +14,8 @@ import java.lang.annotation.Target;
  * forwards compatibility: it would be all too easy to change the variable's name and break compatibility with
  * previously persisted objects.
  * 
- * The type in which the annotated field is contained must be annotated {@code @Persistable}; otherwise, this annotation
- * will have no effect. This field's type must be a persistable type: either marked {@code @Persistable}, a primitive,
+ * The type in which the annotated field is contained must be annotated @{@link Persistable}; otherwise, this annotation
+ * will have no effect. This field's type must be a persistable type: either marked @{@link Persistable}, a primitive,
  * or a {@code String}.
  */
 @Documented
