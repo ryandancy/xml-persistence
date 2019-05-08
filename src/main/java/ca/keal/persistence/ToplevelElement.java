@@ -11,7 +11,7 @@ import org.w3c.dom.Element;
 class ToplevelElement extends ParentElement {
   
   /** Whether this element is the root element. */
-  private final boolean root;
+  private boolean root;
   
   /** The ID of this element, by which other elements may refer to this element. */
   private final String id;
@@ -51,6 +51,13 @@ class ToplevelElement extends ParentElement {
    */
   public boolean isRoot() {
     return root;
+  }
+  
+  /**
+   * Update whether this element is the root element.
+   */
+  public void setRoot(boolean root) {
+    this.root = root;
   }
   
   /**

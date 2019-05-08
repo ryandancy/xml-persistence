@@ -1,6 +1,11 @@
 package ca.keal.persistence;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.lang.annotation.Annotation;
 
 /**
  * Handles persisting an @{@link Persistable} object of type {@code R} to XML and regenerating it from XML.
@@ -8,6 +13,21 @@ import org.w3c.dom.Document;
  *  be @{@link Persistable} with {@code toplevel=true}.
  */
 public class XmlPersistor<R> {
+  
+  private static final String ROOT_ELEMENT_NAME = "persisted";
+  
+  // A base instance of Persist used for the root element
+  private static final Persist ROOT_PERSIST_ANNOTATION = new Persist() {
+    @Override
+    public Class<? extends Annotation> annotationType() {
+      return Persist.class;
+    }
+    
+    @Override
+    public String value() {
+      return "root-persist-tag-YOU-SHOULD-NOT-SEE-THIS";
+    }
+  };
   
   private final Class<R> rootClass;
   private final Persistable rootAnnotation;
@@ -41,7 +61,37 @@ public class XmlPersistor<R> {
    * @throws PersistenceException If an error is encountered when persisting {@code root}.
    */
   public Document toXml(R root) {
-    throw new UnsupportedOperationException("Not yet implemented");
+    if (root == null) {
+      throw new NullPointerException("Cannot persist null objects");
+    }
+    
+    // Persist the root element first
+    ToplevelList toplevelList = new ToplevelList();
+    PersistenceStrategy<R> strategy = new PersistablePersistStrategy<>(rootClass);
+    
+    // We can do this because we checked that it's toplevel in the constructor
+    TextElement idElement = (TextElement) strategy.persist(toplevelList, ROOT_PERSIST_ANNOTATION, root);
+    
+    // Find the toplevel element with this ID and set it to root
+    toplevelList.getElement(rootAnnotation.tag(), idElement.getText()).setRoot(true);
+    
+    // Load it all into an XML document and return
+    Document doc;
+    try {
+      doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+    } catch (ParserConfigurationException e) {
+      // Why must you do this Java, this really should never happen
+      throw new IllegalStateException("Something has, apparently, gone very wrong.", e);
+    }
+  
+    Element rootElement = doc.createElement(ROOT_ELEMENT_NAME);
+    doc.appendChild(rootElement);
+    
+    for (ToplevelElement element : toplevelList.getAsCollection()) {
+      rootElement.appendChild(element.toXmlElement(doc));
+    }
+    
+    return doc;
   }
   
   /**

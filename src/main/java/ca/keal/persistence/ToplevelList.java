@@ -77,6 +77,14 @@ class ToplevelList {
   }
   
   /**
+   * Return the toplevel element in the list with the specified name and ID, or {@code null} if there is no toplevel
+   * element with the given name and ID in the list.
+   */
+  public ToplevelElement getElement(String name, String id) {
+    return idsToElements.get(new ItemID(name, id));
+  }
+  
+  /**
    * @return A collection of the {@link ToplevelElement}s in this {@link ToplevelList}.
    */
   public Collection<ToplevelElement> getAsCollection() {
