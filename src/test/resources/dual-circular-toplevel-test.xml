@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persisted>
+  <circularRoot root="true" id="foo">
+    <toplevelSide>bar</toplevelSide>
+  </circularRoot>
+  <circularSide id="bar">
+    <toplevelRoot>foo</toplevelRoot>
+  </circularSide>
+</persisted>

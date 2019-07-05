@@ -52,6 +52,8 @@ class XmlPersistorTest {
     assertFalse(diff.hasDifferences(), diff.toString());
   }
   
+  // ==========================================================================================
+  
   @Persistable(toplevel=true, tag="PrimitivesOnlyTest", idField="id")
   @SuppressWarnings("unused")
   private static class PrimitivesOnlyTest {
@@ -76,6 +78,8 @@ class XmlPersistorTest {
     assertSame(persisted, "src/test/resources/primitives-only-test.xml");
   }
   
+  // ==========================================================================================
+  
   @Persistable(toplevel=true, tag="simpleEmbeddedTest", idField="id")
   @SuppressWarnings("unused")
   private static class SimpleEmbeddedTest {
@@ -96,7 +100,7 @@ class XmlPersistorTest {
     @Persist("thing1") private final String thing1;
     @Persist("thing2") private final String thing2;
     
-    public SimpleEmbedded(String thing1, String thing2) {
+    SimpleEmbedded(String thing1, String thing2) {
       this.thing1 = thing1;
       this.thing2 = thing2;
     }
@@ -108,6 +112,70 @@ class XmlPersistorTest {
     XmlPersistor<SimpleEmbeddedTest> persistor = new XmlPersistor<>(SimpleEmbeddedTest.class);
     Document persisted = persistor.toXml(new SimpleEmbeddedTest());
     assertSame(persisted, "src/test/resources/simple-embedded-test.xml");
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="circularRoot", idField="id")
+  @SuppressWarnings("unused")
+  private static class DualCircularToplevelRoot {
+    
+    private final String id;
+    
+    @Persist("toplevelSide") private final DualCircularToplevelSide side;
+    
+    DualCircularToplevelRoot(String idMe, String idSide) {
+      this.id = idMe;
+      this.side = new DualCircularToplevelSide(idSide, this);
+    }
+    
+  }
+  
+  @Persistable(toplevel=true, tag="circularSide", idField="id")
+  @SuppressWarnings("unused")
+  private static class DualCircularToplevelSide {
+    
+    private final String id;
+    
+    @Persist("toplevelRoot") private final DualCircularToplevelRoot root;
+    
+    DualCircularToplevelSide(String id, DualCircularToplevelRoot root) {
+      this.id = id;
+      this.root = root;
+    }
+    
+  }
+  
+  @Test
+  void dualCircularToplevelToXml() {
+    XmlPersistor<DualCircularToplevelRoot> persistor = new XmlPersistor<>(DualCircularToplevelRoot.class);
+    Document persisted = persistor.toXml(new DualCircularToplevelRoot("foo", "bar"));
+    assertSame(persisted, "src/test/resources/dual-circular-toplevel-test.xml");
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="singleCircle", idField="id")
+  @SuppressWarnings("unused")
+  private static class SingleCircularToplevelTest {
+    
+    private final String id = "foobar";
+    
+    @Persist("heyLookItsMe") private final SingleCircularToplevelTest me;
+    
+    @Persist("dogInFrenchIs") private final String dog = "chien";
+    
+    SingleCircularToplevelTest() {
+      me = this;
+    }
+    
+  }
+  
+  @Test
+  void singleCircularToplevelToXml() {
+    XmlPersistor<SingleCircularToplevelTest> persistor = new XmlPersistor<>(SingleCircularToplevelTest.class);
+    Document persisted = persistor.toXml(new SingleCircularToplevelTest());
+    assertSame(persisted, "src/test/resources/single-circular-toplevel-test.xml");
   }
   
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persisted>
+  <singleCircle root="true" id="foobar">
+    <heyLookItsMe>foobar</heyLookItsMe>
+    <dogInFrenchIs>chien</dogInFrenchIs>
+  </singleCircle>
+</persisted>

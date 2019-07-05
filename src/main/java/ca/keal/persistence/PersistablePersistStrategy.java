@@ -21,23 +21,23 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   }
   
   /**
-   * Persist {@code toPersist}. This is done by choosing an appropriate {@link PersistenceStrategy} for each field in
+   * <p>Persist {@code toPersist}. This is done by choosing an appropriate {@link PersistenceStrategy} for each field in
    * the class marked @{@link Persist}: if the field is a primitive or a {@code String},
-   * {@link PrimitivePersistStrategy} is used; else, {@link PersistablePersistStrategy} is used.
+   * {@link PrimitivePersistStrategy} is used; else, {@link PersistablePersistStrategy} is used.</p>
    * 
-   * What is done with the element containing the persisted versions of each field depends on whether the class returned
-   * by {@link #getPersistingClass()} is marked {@code @Persistable(toplevel=true)} or not. (It must be
-   * marked @{@link Persistable}.)
+   * <p>What is done with the element containing the persisted versions of each field depends on whether the class
+   * returned by {@link #getPersistingClass()} is marked {@code @Persistable(toplevel=true)} or not. (It must be
+   * marked @{@link Persistable}.)</p>
    * 
-   * If it is <b>not</b> toplevel, the persisted fields are placed in a {@link ParentElement} with the tag given by
-   * {@code persistAnno.value()}. This {@link ParentElement} is returned.
+   * <p>If it is <b>not</b> toplevel, the persisted fields are placed in a {@link ParentElement} with the tag given by
+   * {@code persistAnno.value()}. This {@link ParentElement} is returned.</p>
    * 
-   * If it <b>is</b> toplevel, the persisted fields are placed in a {@link ToplevelElement} which is then added to the
-   * {@code toplevelList} passed in. The {@link ToplevelElement} has the tag given by the {@code tag} field of
+   * <p>If it <b>is</b> toplevel, the persisted fields are placed in a {@link ToplevelElement} which is then added to
+   * the {@code toplevelList} passed in. The {@link ToplevelElement} has the tag given by the {@code tag} field of
    * the @{@link Persistable} annotation on the persisting class and its {@code id} attribute is given by the value of
    * the field given by the @{@link Persistable} annotation's {@code idField} value. Then, that same ID value is used
    * as the text content of a {@link TextElement} bearing the tag given by {@code persistAnno.value()}. The
-   * {@link TextElement} is returned as a reference to the element in the {@code toplevelList}.
+   * {@link TextElement} is returned as a reference to the element in the {@code toplevelList}.</p>
    * 
    * @param toplevelList The global (for this persisting) {@link ToplevelList} of {@link ToplevelElement}s.
    * @param persistAnno The @{@link Persist} annotation applied to {@code toPersist}.
@@ -52,37 +52,60 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   @Override
   public PersistedElement persist(ToplevelList toplevelList, Persist persistAnno, T toPersist) {
     Persistable persistable = PersistenceUtil.verifyAndGetPersistable(getPersistingClass());
-    
-    ParentElement element;
     if (persistable.toplevel()) {
-      try {
-        Field idField = getPersistingClass().getDeclaredField(persistable.idField());
-        idField.setAccessible(true);
-        element = new ToplevelElement(persistable.tag(), idField.get(toPersist).toString());
-      } catch (NoSuchFieldException e) {
-        // Yeah this never happens, this case was caught in verifyAndGetPersistable()
-        System.err.println("ERROR: THIS SHOULD NOT HAPPEN. The idField specified in the @Persistable annotation of '" 
-            + getPersistingClass().getCanonicalName() + "' does not exist despite passing previous tests. There is a " 
-            + "bug in PersistenceUtil.verifyAndGetPersistable() - please tell developer.");
-        throw new PersistenceException("This should not happen. idField of '" + getPersistingClass().getCanonicalName()
-            + "' does not exist despite being verified previously.");
-      } catch (IllegalAccessException e) {
-        throw new PersistenceException("The specified idField, '" + persistable.idField() + "' in '"
-            + getPersistingClass().getCanonicalName() + "' is inaccessible and cannot be persisted.");
-      }
+      return persistToplevel(toplevelList, persistAnno, persistable, toPersist);
     } else {
-      element = new ParentElement(persistAnno.value());
+      return persistNonToplevel(toplevelList, persistAnno, persistable, toPersist);
+    }
+  }
+  
+  /**
+   * The implementation of {@link #persist(ToplevelList, Persist, Object)} for when the persistable object is toplevel.
+   * @see #persist(ToplevelList, Persist, Object)
+   */
+  private PersistedElement persistToplevel(ToplevelList toplevelList, Persist persistAnno,
+                                           Persistable persistable, T toPersist) {
+    // Extract the id from the idField
+    String id;
+    try {
+      Field idField = getPersistingClass().getDeclaredField(persistable.idField());
+      idField.setAccessible(true);
+      id = idField.get(toPersist).toString();
+    } catch (NoSuchFieldException e) {
+      // Yeah this never happens, this case was caught in verifyAndGetPersistable()
+      System.err.println("ERROR: THIS SHOULD NOT HAPPEN. The idField specified in the @Persistable annotation of '"
+          + getPersistingClass().getCanonicalName() + "' does not exist despite passing previous tests. There is a "
+          + "bug in PersistenceUtil.verifyAndGetPersistable() - please tell developer.");
+      throw new PersistenceException("This should not happen. idField of '" + getPersistingClass().getCanonicalName()
+          + "' does not exist despite being verified previously.");
+    } catch (IllegalAccessException e) {
+      throw new PersistenceException("The specified idField, '" + persistable.idField() + "' in '"
+          + getPersistingClass().getCanonicalName() + "' is inaccessible and cannot be persisted.");
     }
     
+    // Generate a new toplevel element for it only if it isn't persisted already
+    if (!toplevelList.contains(persistable.tag(), id)) {
+      ToplevelElement toplevelElement = new ToplevelElement(persistable.tag(), id);
+      // We add the element before we populate it so that other elements can refer to this element's toplevel id
+      // (i.e. we're reserving this element's place in the toplevel list)
+      toplevelList.addElement(toplevelElement);
+      populateStructure(toplevelList, toplevelElement, toPersist);
+    }
+    
+    // Return a reference to the toplevel element
+    return new TextElement(persistAnno.value(), id);
+  }
+  
+  /**
+   * The implementation of {@link #persist(ToplevelList, Persist, Object)} for when the object is not toplevel.
+   * @see #persist(ToplevelList, Persist, Object)
+   */
+  private PersistedElement persistNonToplevel(ToplevelList toplevelList, Persist persistAnno,
+                                              Persistable persistable, T toPersist) {
+    // Generate and return a new element
+    ParentElement element = new ParentElement(persistAnno.value());
     populateStructure(toplevelList, element, toPersist);
-    
-    if (persistable.toplevel()) {
-      ToplevelElement toplevel = (ToplevelElement) element;
-      toplevelList.addElement(toplevel);
-      return new TextElement(persistAnno.value(), toplevel.getId());
-    } else {
-      return element;
-    }
+    return element;
   }
   
   /**
