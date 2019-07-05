@@ -38,10 +38,25 @@ class XmlPersistorTest {
     }
   }
   
+  private void assertSame(Document testDoc, String controlLocation) {
+    Source test = Input.fromDocument(testDoc).build();
+    Source control = Input.fromFile(controlLocation).build();
+    
+    Diff diff = DiffBuilder.compare(control)
+        .withTest(test)
+        .ignoreComments()
+        .ignoreWhitespace()
+        .ignoreElementContentWhitespace()
+        .build();
+    
+    assertFalse(diff.hasDifferences(), diff.toString());
+  }
+  
   @Persistable(toplevel=true, tag="PrimitivesOnlyTest", idField="id")
+  @SuppressWarnings("unused")
   private static class PrimitivesOnlyTest {
     
-    @SuppressWarnings("unused") private final String id = "thisIsMyId";
+    private final String id = "thisIsMyId";
     
     @Persist("myPrivateInt") private int mpi = -242817;
     @Persist("myDefaultLong") long mdl = 147124869198241L;
@@ -58,18 +73,41 @@ class XmlPersistorTest {
   void primitivesOnlyToXml() {
     XmlPersistor<PrimitivesOnlyTest> persistor = new XmlPersistor<>(PrimitivesOnlyTest.class);
     Document persisted = persistor.toXml(new PrimitivesOnlyTest());
+    assertSame(persisted, "src/test/resources/primitives-only-test.xml");
+  }
+  
+  @Persistable(toplevel=true, tag="simpleEmbeddedTest", idField="id")
+  @SuppressWarnings("unused")
+  private static class SimpleEmbeddedTest {
     
-    Source test = Input.fromDocument(persisted).build();
-    Source control = Input.fromFile("src/test/resources/primitives-only-test.xml").build();
+    private final String id = "simpleEmbedded";
     
-    Diff diff = DiffBuilder.compare(control)
-        .withTest(test)
-        .ignoreComments()
-        .ignoreWhitespace()
-        .ignoreElementContentWhitespace()
-        .build();
+    @Persist("primitiveInt") private final int pint = 42;
     
-    assertFalse(diff.hasDifferences(), diff.toString());
+    @Persist("embedded1") private SimpleEmbedded e1 = new SimpleEmbedded("abc", "def");
+    @Persist("embedded2") private SimpleEmbedded e2 = new SimpleEmbedded("123", "456");
+    
+  }
+  
+  @Persistable
+  @SuppressWarnings("unused")
+  private static class SimpleEmbedded {
+    
+    @Persist("thing1") private final String thing1;
+    @Persist("thing2") private final String thing2;
+    
+    public SimpleEmbedded(String thing1, String thing2) {
+      this.thing1 = thing1;
+      this.thing2 = thing2;
+    }
+    
+  }
+  
+  @Test
+  void simpleEmbeddedToXml() {
+    XmlPersistor<SimpleEmbeddedTest> persistor = new XmlPersistor<>(SimpleEmbeddedTest.class);
+    Document persisted = persistor.toXml(new SimpleEmbeddedTest());
+    assertSame(persisted, "src/test/resources/simple-embedded-test.xml");
   }
   
 }

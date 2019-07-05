@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persisted>
+  <simpleEmbeddedTest id="simpleEmbedded" root="true">
+    <primitiveInt>42</primitiveInt>
+    <embedded1>
+      <thing1>abc</thing1>
+      <thing2>def</thing2>
+    </embedded1>
+    <embedded2>
+      <thing1>123</thing1>
+      <thing2>456</thing2>
+    </embedded2>
+  </simpleEmbeddedTest>
+</persisted>
