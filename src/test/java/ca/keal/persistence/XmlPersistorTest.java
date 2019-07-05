@@ -17,6 +17,8 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class XmlPersistorTest {
   
@@ -29,7 +31,7 @@ class XmlPersistorTest {
       transformer.setOutputProperty(OutputKeys.METHOD, "xml");
       transformer.setOutputProperty(OutputKeys.INDENT, "yes");
       transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-      transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+      transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
       
       transformer.transform(new DOMSource(doc),
           new StreamResult(new OutputStreamWriter(System.out, StandardCharsets.UTF_8)));
@@ -53,6 +55,7 @@ class XmlPersistorTest {
   }
   
   // ==========================================================================================
+  // POSITIVE TESTS
   
   @Persistable(toplevel=true, tag="PrimitivesOnlyTest", idField="id")
   @SuppressWarnings("unused")
@@ -176,6 +179,71 @@ class XmlPersistorTest {
     XmlPersistor<SingleCircularToplevelTest> persistor = new XmlPersistor<>(SingleCircularToplevelTest.class);
     Document persisted = persistor.toXml(new SingleCircularToplevelTest());
     assertSame(persisted, "src/test/resources/single-circular-toplevel-test.xml");
+  }
+  
+  // ==========================================================================================
+  // NEGATIVE TESTS - toXml()
+  // @Persistable attribute validity was tested in PersistenceUtilTest so whatever on that
+  
+  private static class NotPersistable {}
+  
+  @Persistable(toplevel=true, tag="invalid", idField="id")
+  @SuppressWarnings("unused")
+  private static class PersistingNotPersistable {
+    
+    private final String id = "hello";
+    
+    @Persist("notPersistable") private NotPersistable foo = new NotPersistable();
+    
+  }
+  
+  @Test
+  void persistingNonPersistableClassThrows() {
+    XmlPersistor<PersistingNotPersistable> persistor = new XmlPersistor<>(PersistingNotPersistable.class);
+    PersistenceException e = assertThrows(PersistenceException.class,
+        () -> persistor.toXml(new PersistingNotPersistable()));
+    assertTrue(e.getMessage().contains("must be annotated @Persistable"));
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="invalid", idField="id")
+  @SuppressWarnings("unused")
+  private static class EmptyStringTagOnPersist {
+    
+    private final String id = "foobar";
+    
+    @Persist("") private int hi = 2;
+    
+  }
+  
+  @Test
+  void emptyStringAsTagThrows() {
+    XmlPersistor<EmptyStringTagOnPersist> persistor = new XmlPersistor<>(EmptyStringTagOnPersist.class);
+    PersistenceException e = assertThrows(PersistenceException.class,
+        () -> persistor.toXml(new EmptyStringTagOnPersist()));
+    assertTrue(e.getMessage().contains("invalid tag name"));
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="invalid", idField="id")
+  @SuppressWarnings("unused")
+  private static class TwoFieldsWithSameTag {
+    
+    private final String id = "foobar";
+    
+    @Persist("common") private int foo = 1234;
+    @Persist("common") private String baz = "quux";
+    
+  }
+  
+  @Test
+  void twoFieldsWithSameTagThrows() {
+    XmlPersistor<TwoFieldsWithSameTag> persistor = new XmlPersistor<>(TwoFieldsWithSameTag.class);
+    PersistenceException e = assertThrows(PersistenceException.class,
+        () -> persistor.toXml(new TwoFieldsWithSameTag()));
+    assertTrue(e.getMessage().toLowerCase().contains("duplicate"));
   }
   
 }

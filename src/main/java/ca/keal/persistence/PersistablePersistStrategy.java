@@ -12,7 +12,7 @@ import java.util.List;
  * @param <T> The class which may be persisted by this strategy.
  * @see #persist(ToplevelList, Persist, Object)
  */
-// TODO this currently cannot handle persisting null fields - implement this
+// TODO this currently cannot handle persisting null fields - implement this -> use an attribute
 public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   
   /** Create a new {@link PersistablePersistStrategy} persisting the specified class. */
@@ -55,7 +55,7 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
     if (persistable.toplevel()) {
       return persistToplevel(toplevelList, persistAnno, persistable, toPersist);
     } else {
-      return persistNonToplevel(toplevelList, persistAnno, persistable, toPersist);
+      return persistNonToplevel(toplevelList, persistAnno, toPersist);
     }
   }
   
@@ -100,8 +100,7 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
    * The implementation of {@link #persist(ToplevelList, Persist, Object)} for when the object is not toplevel.
    * @see #persist(ToplevelList, Persist, Object)
    */
-  private PersistedElement persistNonToplevel(ToplevelList toplevelList, Persist persistAnno,
-                                              Persistable persistable, T toPersist) {
+  private PersistedElement persistNonToplevel(ToplevelList toplevelList, Persist persistAnno, T toPersist) {
     // Generate and return a new element
     ParentElement element = new ParentElement(persistAnno.value());
     populateStructure(toplevelList, element, toPersist);
@@ -125,13 +124,24 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
     return fields;
   }
   
-  /** Populate {@code parent} with the persisted representations of each field in {@code toPersist}. */
+  /**
+   * Populate {@code parent} with the persisted representations of each field in {@code toPersist}. Also make sure that
+   * there are no duplicate @Persist values, as that would make it impossible to regenerate the class structure.
+   */
   private void populateStructure(ToplevelList toplevelList, ParentElement parent, T toPersist) {
+    List<String> persistValuesSeen = new ArrayList<>();
+    
     for (Field field : getAllDeclaredFields()) {
       Persist persistAnno = field.getAnnotation(Persist.class);
       if (persistAnno != null) {
+        if (persistValuesSeen.contains(persistAnno.value())) {
+          throw new PersistenceException("Duplicate @Persist values are not allowed in one class: '"
+            + persistAnno.value() + "' seen twice in '" + getPersistingClass().getCanonicalName() + "'.");
+        }
+        
         PersistedElement child = callStrategy(field.getType(), field, toplevelList, persistAnno, toPersist);
         parent.addChild(child);
+        persistValuesSeen.add(persistAnno.value());
       }
     }
   }
