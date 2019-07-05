@@ -1,6 +1,8 @@
 package ca.keal.persistence;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A {@link PersistenceStrategy} which persists objects marked @{@link Persistable}. This strategy will persist each
@@ -55,6 +57,7 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
     if (persistable.toplevel()) {
       try {
         Field idField = getPersistingClass().getDeclaredField(persistable.idField());
+        idField.setAccessible(true);
         element = new ToplevelElement(persistable.tag(), idField.get(toPersist).toString());
       } catch (NoSuchFieldException e) {
         // Yeah this never happens, this case was caught in verifyAndGetPersistable()
@@ -82,9 +85,26 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
     }
   }
   
+  /**
+   * Get all of the declared fields in the entire hierarchy of getPersistingClass(), except for java.lang.Object,
+   * set accessible and return. We need declared fields so as to be able to access non-public fields.
+   */
+  private List<Field> getAllDeclaredFields() {
+    List<Field> fields = new ArrayList<>();
+    Class<?> currentClass = getPersistingClass();
+    while (!currentClass.equals(Object.class)) {
+      for (Field field : currentClass.getDeclaredFields()) {
+        field.setAccessible(true);
+        fields.add(field);
+      }
+      currentClass = currentClass.getSuperclass();
+    }
+    return fields;
+  }
+  
   /** Populate {@code parent} with the persisted representations of each field in {@code toPersist}. */
   private void populateStructure(ToplevelList toplevelList, ParentElement parent, T toPersist) {
-    for (Field field : getPersistingClass().getFields()) {
+    for (Field field : getAllDeclaredFields()) {
       Persist persistAnno = field.getAnnotation(Persist.class);
       if (persistAnno != null) {
         PersistedElement child = callStrategy(field.getType(), field, toplevelList, persistAnno, toPersist);
@@ -97,9 +117,9 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   private <F> PersistedElement callStrategy(Class<F> fieldCls, Field field, ToplevelList toplevelList,
                                             Persist persistAnno, T toPersist) {
     try {
-      F fieldValue = fieldCls.cast(field.get(toPersist));
       PersistenceStrategy<F> strategy = pickStrategy(fieldCls);
-      return strategy.persist(toplevelList, persistAnno, fieldValue);
+      //noinspection unchecked
+      return strategy.persist(toplevelList, persistAnno, (F) field.get(toPersist));
     } catch (IllegalAccessException e) {
       throw new PersistenceException("Cannot persist field protected by access control: " + field.getName()
         + " in " + field.getDeclaringClass());

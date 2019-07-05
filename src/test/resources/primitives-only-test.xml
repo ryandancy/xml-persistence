@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persisted>
+  <PrimitivesOnlyTest id="thisIsMyId" root="true">
+    <myPrivateInt>-242817</myPrivateInt>
+    <myDefaultLong>147124869198241</myDefaultLong>
+    <myProtectedChar>a</myProtectedChar>
+    <myPublicByte>-41</myPublicByte>
+    <myString>hello</myString>
+  </PrimitivesOnlyTest>
+</persisted>

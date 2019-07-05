@@ -4,7 +4,7 @@ A simple library which persists Java classes to XML using annotations.
 
 With the following code,
 ```java
-@Persistable(toplevel=true, name="foo", idField="fooId")
+@Persistable(toplevel=true, tag="foo", idField="fooId")
 class Foo {
   
   private final String fooId = "TotallyUniqueID";
@@ -21,7 +21,7 @@ class Bar {
 }
 ```
 
-Calling `XmlPersistor.toXml(new Foo())` will generate:
+Calling `new XmlPersistor<>.toXml(new Foo())` will generate:
 
 ```xml
 <?xml version="1.0" coding="utf-8"?>
@@ -35,7 +35,7 @@ Calling `XmlPersistor.toXml(new Foo())` will generate:
 </persisted>
 ```
 
-Calling `XmlPersistor.fromXml(xml, Foo.class)` where `xml` is the above XML will
+Calling `new XmlPersistor<>(Foo.class).fromXml(xml)` where `xml` is the above XML will
 generate the original `Foo` object.
 
 ## Explanation
