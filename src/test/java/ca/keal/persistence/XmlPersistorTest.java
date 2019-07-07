@@ -243,11 +243,41 @@ class XmlPersistorTest {
   
   @Test
   void twoToplevelsWithSameTagThrows() {
-    // To fix: maybe have ToplevelList track the classes too, error upon duplicate
     XmlPersistor<FirstToplevelWithSameTag> persistor = new XmlPersistor<>(FirstToplevelWithSameTag.class);
     PersistenceException e = assertThrows(PersistenceException.class,
-        () ->  persistor.toXml(new FirstToplevelWithSameTag()));
+        () -> persistor.toXml(new FirstToplevelWithSameTag()));
     assertTrue(e.getMessage().toLowerCase().contains("duplicate"));
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable
+  private static class NonToplevelRoot {}
+  
+  @Test
+  void persistingNonToplevelThrows() {
+    PersistenceException e = assertThrows(PersistenceException.class, () -> new XmlPersistor<>(NonToplevelRoot.class));
+    assertTrue(e.getMessage().toLowerCase().contains("toplevel"));
+  }
+  
+  private static class NotEvenPersistable {}
+  
+  @Test
+  void persistingNonPersistableThrows() {
+    PersistenceException e = assertThrows(PersistenceException.class,
+        () -> new XmlPersistor<>(NotEvenPersistable.class));
+    assertTrue(e.getMessage().toLowerCase().contains("persistable"));
+  }
+  
+  @Test
+  void persistingNullClassThrows() {
+    assertThrows(NullPointerException.class, () -> new XmlPersistor<>(null));
+  }
+  
+  @Test
+  void persistingNullThrows() {
+    XmlPersistor<PrimitivesOnlyTest> persistor = new XmlPersistor<>(PrimitivesOnlyTest.class);
+    assertThrows(NullPointerException.class, () -> persistor.toXml(null));
   }
   
 }
