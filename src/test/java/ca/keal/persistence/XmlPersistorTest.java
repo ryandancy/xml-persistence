@@ -60,7 +60,6 @@ class XmlPersistorTest {
   @Persistable(toplevel=true, tag="PrimitivesOnlyTest", idField="id")
   @SuppressWarnings("unused")
   private static class PrimitivesOnlyTest {
-    
     private final String id = "thisIsMyId";
     
     @Persist("myPrivateInt") private int mpi = -242817;
@@ -71,7 +70,6 @@ class XmlPersistorTest {
     @Persist("myString") public String ms = "hello"; // Strings count as primitives too
     
     private String notPersisted = "spooky";
-    
   }
   
   @Test
@@ -86,20 +84,17 @@ class XmlPersistorTest {
   @Persistable(toplevel=true, tag="simpleEmbeddedTest", idField="id")
   @SuppressWarnings("unused")
   private static class SimpleEmbeddedTest {
-    
     private final String id = "simpleEmbedded";
     
     @Persist("primitiveInt") private final int pint = 42;
     
     @Persist("embedded1") private SimpleEmbedded e1 = new SimpleEmbedded("abc", "def");
     @Persist("embedded2") private SimpleEmbedded e2 = new SimpleEmbedded("123", "456");
-    
   }
   
   @Persistable
   @SuppressWarnings("unused")
   private static class SimpleEmbedded {
-    
     @Persist("thing1") private final String thing1;
     @Persist("thing2") private final String thing2;
     
@@ -107,7 +102,6 @@ class XmlPersistorTest {
       this.thing1 = thing1;
       this.thing2 = thing2;
     }
-    
   }
   
   @Test
@@ -122,7 +116,6 @@ class XmlPersistorTest {
   @Persistable(toplevel=true, tag="circularRoot", idField="id")
   @SuppressWarnings("unused")
   private static class DualCircularToplevelRoot {
-    
     private final String id;
     
     @Persist("toplevelSide") private final DualCircularToplevelSide side;
@@ -131,13 +124,11 @@ class XmlPersistorTest {
       this.id = idMe;
       this.side = new DualCircularToplevelSide(idSide, this);
     }
-    
   }
   
   @Persistable(toplevel=true, tag="circularSide", idField="id")
   @SuppressWarnings("unused")
   private static class DualCircularToplevelSide {
-    
     private final String id;
     
     @Persist("toplevelRoot") private final DualCircularToplevelRoot root;
@@ -146,7 +137,6 @@ class XmlPersistorTest {
       this.id = id;
       this.root = root;
     }
-    
   }
   
   @Test
@@ -161,17 +151,14 @@ class XmlPersistorTest {
   @Persistable(toplevel=true, tag="singleCircle", idField="id")
   @SuppressWarnings("unused")
   private static class SingleCircularToplevelTest {
-    
     private final String id = "foobar";
     
     @Persist("heyLookItsMe") private final SingleCircularToplevelTest me;
-    
     @Persist("dogInFrenchIs") private final String dog = "chien";
     
     SingleCircularToplevelTest() {
       me = this;
     }
-    
   }
   
   @Test
@@ -190,11 +177,8 @@ class XmlPersistorTest {
   @Persistable(toplevel=true, tag="invalid", idField="id")
   @SuppressWarnings("unused")
   private static class PersistingNotPersistable {
-    
     private final String id = "hello";
-    
     @Persist("notPersistable") private NotPersistable foo = new NotPersistable();
-    
   }
   
   @Test
@@ -210,11 +194,8 @@ class XmlPersistorTest {
   @Persistable(toplevel=true, tag="invalid", idField="id")
   @SuppressWarnings("unused")
   private static class EmptyStringTagOnPersist {
-    
     private final String id = "foobar";
-    
     @Persist("") private int hi = 2;
-    
   }
   
   @Test
@@ -230,12 +211,10 @@ class XmlPersistorTest {
   @Persistable(toplevel=true, tag="invalid", idField="id")
   @SuppressWarnings("unused")
   private static class TwoFieldsWithSameTag {
-    
     private final String id = "foobar";
     
     @Persist("common") private int foo = 1234;
     @Persist("common") private String baz = "quux";
-    
   }
   
   @Test
@@ -243,6 +222,31 @@ class XmlPersistorTest {
     XmlPersistor<TwoFieldsWithSameTag> persistor = new XmlPersistor<>(TwoFieldsWithSameTag.class);
     PersistenceException e = assertThrows(PersistenceException.class,
         () -> persistor.toXml(new TwoFieldsWithSameTag()));
+    assertTrue(e.getMessage().toLowerCase().contains("duplicate"));
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="commonTag", idField="id")
+  @SuppressWarnings("unused")
+  private static class FirstToplevelWithSameTag {
+    private final String id = "foobar";
+    @Persist("youAreMyTwin") private SecondToplevelWithSameTag second = new SecondToplevelWithSameTag();
+  }
+  
+  
+  @Persistable(toplevel=true, tag="commonTag", idField="id")
+  @SuppressWarnings("unused")
+  private static class SecondToplevelWithSameTag {
+    private final String id = "bazquux";
+  }
+  
+  @Test
+  void twoToplevelsWithSameTagThrows() {
+    // To fix: maybe have ToplevelList track the classes too, error upon duplicate
+    XmlPersistor<FirstToplevelWithSameTag> persistor = new XmlPersistor<>(FirstToplevelWithSameTag.class);
+    PersistenceException e = assertThrows(PersistenceException.class,
+        () ->  persistor.toXml(new FirstToplevelWithSameTag()));
     assertTrue(e.getMessage().toLowerCase().contains("duplicate"));
   }
   

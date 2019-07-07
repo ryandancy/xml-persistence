@@ -16,10 +16,10 @@ class PrimitivePersistStrategy<T> extends PersistenceStrategy<T> {
   /**
    * @return A simple {@link TextElement} with the tag of the @{@link Persist} annotation's {@code value} and the text
    *  being {@code toPersist.toString()}.
-   * @see PersistenceStrategy#persist(ToplevelList, Persist, Object)
+   * @see PersistenceStrategy#persist(PersistingState, Persist, Object)
    */
   @Override
-  public PersistedElement persist(ToplevelList toplevelList, Persist persistAnno, T toPersist) {
+  public PersistedElement persist(PersistingState state, Persist persistAnno, T toPersist) {
     return new TextElement(persistAnno.value(), toPersist.toString());
   }
   

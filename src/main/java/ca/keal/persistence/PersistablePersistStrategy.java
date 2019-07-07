@@ -7,10 +7,10 @@ import java.util.List;
 /**
  * A {@link PersistenceStrategy} which persists objects marked @{@link Persistable}. This strategy will persist each
  * field in the given object, selecting and calling a {@link PersistenceStrategy} for each field. See
- * {@link #persist(ToplevelList, Persist, Object)} for a more specific description of this strategy's functioning.
+ * {@link #persist(PersistingState, Persist, Object)} for a more specific description of this strategy's functioning.
  * 
  * @param <T> The class which may be persisted by this strategy.
- * @see #persist(ToplevelList, Persist, Object)
+ * @see #persist(PersistingState, Persist, Object)
  */
 // TODO this currently cannot handle persisting null fields - implement this -> use an attribute
 public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
@@ -33,13 +33,14 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
    * {@code persistAnno.value()}. This {@link ParentElement} is returned.</p>
    * 
    * <p>If it <b>is</b> toplevel, the persisted fields are placed in a {@link ToplevelElement} which is then added to
-   * the {@code toplevelList} passed in. The {@link ToplevelElement} has the tag given by the {@code tag} field of
-   * the @{@link Persistable} annotation on the persisting class and its {@code id} attribute is given by the value of
-   * the field given by the @{@link Persistable} annotation's {@code idField} value. Then, that same ID value is used
-   * as the text content of a {@link TextElement} bearing the tag given by {@code persistAnno.value()}. The
-   * {@link TextElement} is returned as a reference to the element in the {@code toplevelList}.</p>
+   * the {@link ToplevelList} of the {@link PersistingState} passed in. The {@link ToplevelElement} has the tag given by
+   * the {@code tag} field of the @{@link Persistable} annotation on the persisting class and its {@code id} attribute
+   * is given by the value of the field given by the @{@link Persistable} annotation's {@code idField} value. Then, that
+   * same ID value is used as the text content of a {@link TextElement} bearing the tag given by
+   * {@code persistAnno.value()}. The {@link TextElement} is returned as a reference to the element in the
+   * {@code toplevelList}.</p>
    * 
-   * @param toplevelList The global (for this persisting) {@link ToplevelList} of {@link ToplevelElement}s.
+   * @param state The global (for this persisting) {@link PersistingState}s.
    * @param persistAnno The @{@link Persist} annotation applied to {@code toPersist}.
    * @param toPersist The object to persist. An instance of the class returned by {@link #getPersistingClass()}.
    * @return Either a {@link ParentElement} containing persisted representations of each field marked @{@link Persist}
@@ -50,21 +51,24 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
    *  persisting null fields is not currently supported.
    */
   @Override
-  public PersistedElement persist(ToplevelList toplevelList, Persist persistAnno, T toPersist) {
+  public PersistedElement persist(PersistingState state, Persist persistAnno, T toPersist) {
     Persistable persistable = PersistenceUtil.verifyAndGetPersistable(getPersistingClass());
     if (persistable.toplevel()) {
-      return persistToplevel(toplevelList, persistAnno, persistable, toPersist);
+      return persistToplevel(state, persistAnno, persistable, toPersist);
     } else {
-      return persistNonToplevel(toplevelList, persistAnno, toPersist);
+      return persistNonToplevel(state, persistAnno, toPersist);
     }
   }
   
   /**
-   * The implementation of {@link #persist(ToplevelList, Persist, Object)} for when the persistable object is toplevel.
-   * @see #persist(ToplevelList, Persist, Object)
+   * The implementation of {@link #persist(PersistingState, Persist, Object)} for when the object is toplevel.
+   * @see #persist(PersistingState, Persist, Object)
    */
-  private PersistedElement persistToplevel(ToplevelList toplevelList, Persist persistAnno,
+  private PersistedElement persistToplevel(PersistingState state, Persist persistAnno,
                                            Persistable persistable, T toPersist) {
+    // Check/register the tag to avoid duplicate tags
+    state.getDuplicateChecker().checkAndRegister(persistable.tag(), getPersistingClass());
+    
     // Extract the id from the idField
     String id;
     try {
@@ -84,12 +88,12 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
     }
     
     // Generate a new toplevel element for it only if it isn't persisted already
-    if (!toplevelList.contains(persistable.tag(), id)) {
+    if (!state.getToplevelList().contains(persistable.tag(), id)) {
       ToplevelElement toplevelElement = new ToplevelElement(persistable.tag(), id);
       // We add the element before we populate it so that other elements can refer to this element's toplevel id
       // (i.e. we're reserving this element's place in the toplevel list)
-      toplevelList.addElement(toplevelElement);
-      populateStructure(toplevelList, toplevelElement, toPersist);
+      state.getToplevelList().addElement(toplevelElement);
+      populateStructure(state, toplevelElement, toPersist);
     }
     
     // Return a reference to the toplevel element
@@ -97,13 +101,13 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   }
   
   /**
-   * The implementation of {@link #persist(ToplevelList, Persist, Object)} for when the object is not toplevel.
-   * @see #persist(ToplevelList, Persist, Object)
+   * The implementation of {@link #persist(PersistingState, Persist, Object)} for when the object is not toplevel.
+   * @see #persist(PersistingState, Persist, Object)
    */
-  private PersistedElement persistNonToplevel(ToplevelList toplevelList, Persist persistAnno, T toPersist) {
+  private PersistedElement persistNonToplevel(PersistingState state, Persist persistAnno, T toPersist) {
     // Generate and return a new element
     ParentElement element = new ParentElement(persistAnno.value());
-    populateStructure(toplevelList, element, toPersist);
+    populateStructure(state, element, toPersist);
     return element;
   }
   
@@ -128,7 +132,7 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
    * Populate {@code parent} with the persisted representations of each field in {@code toPersist}. Also make sure that
    * there are no duplicate @Persist values, as that would make it impossible to regenerate the class structure.
    */
-  private void populateStructure(ToplevelList toplevelList, ParentElement parent, T toPersist) {
+  private void populateStructure(PersistingState state, ParentElement parent, T toPersist) {
     List<String> persistValuesSeen = new ArrayList<>();
     
     for (Field field : getAllDeclaredFields()) {
@@ -139,7 +143,7 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
             + persistAnno.value() + "' seen twice in '" + getPersistingClass().getCanonicalName() + "'.");
         }
         
-        PersistedElement child = callStrategy(field.getType(), field, toplevelList, persistAnno, toPersist);
+        PersistedElement child = callStrategy(field.getType(), field, state, persistAnno, toPersist);
         parent.addChild(child);
         persistValuesSeen.add(persistAnno.value());
       }
@@ -147,12 +151,12 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   }
   
   /** Call the appropriate {@link PersistenceStrategy} given the field. This exists for generics reasons. */
-  private <F> PersistedElement callStrategy(Class<F> fieldCls, Field field, ToplevelList toplevelList,
+  private <F> PersistedElement callStrategy(Class<F> fieldCls, Field field, PersistingState state,
                                             Persist persistAnno, T toPersist) {
     try {
       PersistenceStrategy<F> strategy = pickStrategy(fieldCls);
       //noinspection unchecked
-      return strategy.persist(toplevelList, persistAnno, (F) field.get(toPersist));
+      return strategy.persist(state, persistAnno, (F) field.get(toPersist));
     } catch (IllegalAccessException e) {
       throw new PersistenceException("Cannot persist field protected by access control: " + field.getName()
         + " in " + field.getDeclaringClass());

@@ -67,14 +67,14 @@ public class XmlPersistor<R> {
     }
     
     // Persist the root element first
-    ToplevelList toplevelList = new ToplevelList();
+    PersistingState state = new PersistingState();
     PersistenceStrategy<R> strategy = new PersistablePersistStrategy<>(rootClass);
     
     // We can do this because we checked that it's toplevel in the constructor
-    TextElement idElement = (TextElement) strategy.persist(toplevelList, ROOT_PERSIST_ANNOTATION, root);
+    TextElement idElement = (TextElement) strategy.persist(state, ROOT_PERSIST_ANNOTATION, root);
     
     // Find the toplevel element with this ID and set it to root
-    toplevelList.getElement(rootAnnotation.tag(), idElement.getText()).setRoot(true);
+    state.getToplevelList().getElement(rootAnnotation.tag(), idElement.getText()).setRoot(true);
     
     // Load it all into an XML document and return
     Document doc;
@@ -88,7 +88,7 @@ public class XmlPersistor<R> {
     Element rootElement = doc.createElement(ROOT_ELEMENT_NAME);
     doc.appendChild(rootElement);
     
-    for (ToplevelElement element : toplevelList.getAsCollection()) {
+    for (ToplevelElement element : state.getToplevelList().getAsCollection()) {
       rootElement.appendChild(element.toXmlElement(doc));
     }
     
