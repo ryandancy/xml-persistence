@@ -63,12 +63,13 @@ public class XmlPersistor<R> {
    */
   public Document toXml(R root) {
     if (root == null) {
-      throw new NullPointerException("Cannot persist null objects"); // TODO or can we persist null objects?
+      // TODO maybe support persisting null objects if a use case exists
+      throw new NullPointerException("Cannot persist null objects");
     }
     
     // Persist the root element first
     PersistingState state = new PersistingState();
-    PersistenceStrategy<R> strategy = new PersistablePersistStrategy<>(rootClass);
+    PersistenceStrategy<R> strategy = PersistenceUtil.pickStrategy(rootClass, root);
     
     // We can do this because we checked that it's toplevel in the constructor
     TextElement idElement = (TextElement) strategy.persist(state, ROOT_PERSIST_ANNOTATION, root);

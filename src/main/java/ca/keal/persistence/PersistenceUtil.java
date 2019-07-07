@@ -75,4 +75,26 @@ final class PersistenceUtil {
     return tag != null && !tag.isEmpty() && !tag.startsWith("xml") && XML_TAG_REGEX.matcher(tag).find();
   }
   
+  /**
+   * Pick an appropriate {@link PersistenceStrategy} to persist the given class and object and return it.
+   */
+  static <R> PersistenceStrategy<R> pickStrategy(Class<R> cls, R object) {
+    if (object == null) {
+      return new NullPersistStrategy<>(cls);
+    }
+    return pickStrategy(cls);
+  }
+  
+  /**
+   * Pick an appropriate {@link PersistenceStrategy} to persist the given class and return it. This method will never
+   * return {@link NullPersistStrategy}.
+   */
+  static <R> PersistenceStrategy<R> pickStrategy(Class<R> cls) {
+    if (cls.isPrimitive() || cls.equals(String.class)) {
+      return new PrimitivePersistStrategy<>(cls);
+    } else {
+      return new PersistablePersistStrategy<>(cls);
+    }
+  }
+  
 }

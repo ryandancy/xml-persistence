@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+// TODO - test with @Persist Integers/other boxed types (null?)
 class XmlPersistorTest {
   
   /** A utility for printing a given Document. */
@@ -166,6 +167,41 @@ class XmlPersistorTest {
     XmlPersistor<SingleCircularToplevelTest> persistor = new XmlPersistor<>(SingleCircularToplevelTest.class);
     Document persisted = persistor.toXml(new SingleCircularToplevelTest());
     assertSame(persisted, "src/test/resources/single-circular-toplevel-test.xml");
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="nullThings", idField="id")
+  @SuppressWarnings("unused")
+  private static class NullThingsTest {
+    private final String id = "foo";
+    @Persist("nullNonToplevel") private final NullThing thing1 = null;
+    @Persist("nonNullNonToplevel") private final NullThing thing2 = new NullThing();
+    @Persist("nullToplevel") private final ToplevelNullThing tlThing1 = null;
+    @Persist("nonNullToplevel") private final ToplevelNullThing tlThing2 = new ToplevelNullThing();
+  }
+  
+  @Persistable
+  @SuppressWarnings("unused")
+  private static class NullThing {
+    @Persist("thisIsNullString") private final String nullThing = null;
+    @Persist("thisHasValueNull") private final String notNull = "null";
+  }
+  
+  @Persistable(toplevel=true, tag="somethingElseNull", idField="myId")
+  @SuppressWarnings("unused")
+  private static class ToplevelNullThing {
+    private final int myId = 20141;
+    @Persist("someInteger") private final int whatever = -1;
+    @Persist("somethingNull") private final String imNull = null;
+  }
+  
+  @Test
+  void nullThingsToXml() {
+    XmlPersistor<NullThingsTest> persistor = new XmlPersistor<>(NullThingsTest.class);
+    Document persisted = persistor.toXml(new NullThingsTest());
+    printDocument(persisted);
+    assertSame(persisted, "src/test/resources/null-things-test.xml");
   }
   
   // ==========================================================================================

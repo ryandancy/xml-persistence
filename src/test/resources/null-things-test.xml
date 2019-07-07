@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persisted>
+  <nullThings root="true" id="foo">
+    <nullNonToplevel null="true" />
+    <nonNullNonToplevel>
+      <thisIsNullString null="true" />
+      <thisHasValueNull>null</thisHasValueNull>
+    </nonNullNonToplevel>
+    <nullToplevel null="true" />
+    <nonNullToplevel>20141</nonNullToplevel>
+  </nullThings>
+  <somethingElseNull id="20141">
+    <someInteger>-1</someInteger>
+    <somethingNull null="true" />
+  </somethingElseNull>
+</persisted>

@@ -12,7 +12,6 @@ import java.util.List;
  * @param <T> The class which may be persisted by this strategy.
  * @see #persist(PersistingState, Persist, Object)
  */
-// TODO this currently cannot handle persisting null fields - implement this -> use an attribute
 public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   
   /** Create a new {@link PersistablePersistStrategy} persisting the specified class. */
@@ -154,22 +153,12 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
   private <F> PersistedElement callStrategy(Class<F> fieldCls, Field field, PersistingState state,
                                             Persist persistAnno, T toPersist) {
     try {
-      PersistenceStrategy<F> strategy = pickStrategy(fieldCls);
-      //noinspection unchecked
-      return strategy.persist(state, persistAnno, (F) field.get(toPersist));
+      @SuppressWarnings("unchecked") F value = (F) field.get(toPersist);
+      PersistenceStrategy<F> strategy = PersistenceUtil.pickStrategy(fieldCls, value);
+      return strategy.persist(state, persistAnno, value);
     } catch (IllegalAccessException e) {
       throw new PersistenceException("Cannot persist field protected by access control: " + field.getName()
         + " in " + field.getDeclaringClass());
-    }
-  }
-  
-  /** Pick an appropriate {@link PersistenceStrategy} to persist the given class and return it. */
-  // TODO should this be moved somewhere other than here? Probably philosophically
-  private static <R> PersistenceStrategy<R> pickStrategy(Class<R> cls) {
-    if (cls.isPrimitive() || cls.equals(String.class)) {
-      return new PrimitivePersistStrategy<>(cls);
-    } else {
-      return new PersistablePersistStrategy<>(cls);
     }
   }
   
