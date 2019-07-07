@@ -101,9 +101,10 @@ public class XmlPersistor<R> {
    * @param doc The XML document from which to regenerate the object.
    * @return The object regenerated from {@code doc}.
    * @throws NullPointerException If {@code doc} is {@code null}.
-   * @throws PersistenceException If an error is encountered when regenerating the object.
+   * @throws RegenerationException If an error is encountered when regenerating the object.
    */
-  public R fromXml(Document doc) {
+  public R fromXml(Document doc) throws RegenerationException {
+    // TODO catch any PersistenceExceptions and throw RegenerationExceptions
     throw new UnsupportedOperationException("Not yet implemented");
   }
   

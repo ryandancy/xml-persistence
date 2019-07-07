@@ -1,7 +1,7 @@
 package ca.keal.persistence;
 
 /**
- * A runtime exception thrown when an attempt at persisting or regenerating an object and its attached hierarchy fails.
+ * A runtime exception thrown when an attempt at persisting an object and its attached hierarchy fails.
  */
 public class PersistenceException extends RuntimeException {
   
