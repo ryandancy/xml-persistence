@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persisted>
+  <hello root="true" id="-1234">
+    <boolean>true</boolean>
+    <byte>-24</byte>
+    <short>634</short>
+    <int>-412</int>
+    <long>29586112412421</long>
+    <float>-41.6235</float>
+    <double>2014.1241</double>
+    <char>X</char>
+    <string>Hello from the other side</string>
+  </hello>
+</persisted>

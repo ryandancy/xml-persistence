@@ -55,7 +55,7 @@ class TextElement extends PersistedElement {
    * @throws RegenerationException If the XML element has children or attributes.
    */
   public static TextElement fromXmlElement(Element element) throws RegenerationException {
-    if (element.hasChildNodes()) {
+    if (PersistenceUtil.elementHasChildren(element)) {
       throw new RegenerationException("Tried to get a TextElement from its XML element, but it has children!");
     }
     if (element.hasAttributes()) {

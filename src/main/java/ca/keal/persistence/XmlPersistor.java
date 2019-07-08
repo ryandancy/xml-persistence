@@ -146,7 +146,7 @@ public class XmlPersistor<R> {
     
     // Regenerate from the root
     PersistRegenStrategy<R> strategy = PersistenceUtil.pickStrategy(rootClass, root);
-    R regenerated = strategy.regenerate(state, ROOT_PERSIST_ANNOTATION, root);
+    R regenerated = strategy.regenerate(state, root);
     
     // Warn if any toplevel isn't used
     for (ItemID itemID : state.getToplevelList().getItemIDs()) {

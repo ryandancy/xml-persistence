@@ -1,5 +1,7 @@
 package ca.keal.persistence;
 
+import org.w3c.dom.Element;
+
 import java.util.regex.Pattern;
 
 /**
@@ -106,6 +108,13 @@ final class PersistenceUtil {
     } else {
       return new PersistablePRStrategy<>(cls);
     }
+  }
+  
+  /**
+   * @return Whether the given element has child elements.
+   */
+  static boolean elementHasChildren(Element element) {
+    return element.getElementsByTagName("*").getLength() > 0;
   }
   
 }

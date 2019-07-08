@@ -1,6 +1,9 @@
 package ca.keal.persistence;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -177,19 +180,13 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
    * 
    * @param state The global (for this regeneration) {@link RegenState}. Update its {@link RegenToplevelRegistry} with
    *  any new toplevel objects and retrieve new @{@link Persistable}-annotated elements from the {@link ToplevelList}.
-   * @param persistAnno The @{@link Persist} annotation applied to the field being returned.
    * @param toRegen The element from which to regenerate the object. Represents an instance of the class returned by
    *  {@link #getPersistingClass()}.
    * @return An object of {@link #getPersistingClass()} regenerated from {@code toRegen}.
    * @throws RegenerationException If an error is encountered in regenerating the object.
    */
   @Override
-  public T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen) throws RegenerationException {
-    if (!persistAnno.value().equals(toRegen.getTag())) {
-      throw new RegenerationException("Tried to regenerate a <" + toRegen.getTag()
-          + "> element, but the @Persist tag was different: " + persistAnno.value());
-    }
-    
+  public T regenerate(RegenState state, PersistedElement toRegen) throws RegenerationException {
     Persistable persistable = PersistenceUtil.verifyAndGetPersistable(getPersistingClass());
     
     // 3 cases: either it's a toplevel parent, an inner-level parent, or a toplevel reference
@@ -244,7 +241,7 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
     try {
       Field idField = getPersistingClass().getDeclaredField(persistable.idField());
       idField.setAccessible(true);
-      idField.set(regenerated, toRegen.getId());
+      idField.set(regenerated, conformIdTo(idField.getType(), toRegen.getId()));
     } catch (NoSuchFieldException e) {
       // once again, this was verified in verifyAndGetPersistable
       System.err.println("ERROR: THIS SHOULD NOT HAPPEN. The idField specified in the @Persistable annotation of '"
@@ -303,8 +300,7 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
       
       // Regenerate the child into the object
       try {
-        field.set(regenerated, PersistenceUtil.pickStrategy(getPersistingClass(), child)
-            .regenerate(state, persistAnno, child));
+        field.set(regenerated, PersistenceUtil.pickStrategy(field.getType(), child).regenerate(state, child));
       } catch (IllegalAccessException e) {
         throw new RegenerationException("Could not access field '" + field.getName() + "' in '"
             + getPersistingClass().getCanonicalName() + "' to regenerate it.", e);
@@ -324,6 +320,50 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
   /** Instantiate an instance of the class returned by {@link #getPersistingClass()} using Objenesis. */
   private T instantiatePersistingClass(RegenState state) {
     return state.getObjenesis().newInstance(getPersistingClass());
+  }
+  
+  @SuppressWarnings("unchecked")
+  private static <I> I conformIdTo(Class<I> cls, String id) throws RegenerationException {
+    // Primitives + String
+    if (cls.equals(boolean.class) || cls.equals(Boolean.class)) {
+      return (I) Boolean.valueOf(Boolean.parseBoolean(id));
+    } else if (cls.equals(byte.class) || cls.equals(Byte.class)) {
+      return (I) new Byte(Byte.parseByte(id));
+    } else if (cls.equals(char.class) || cls.equals(Character.class)) {
+      return (I) new Character(id.charAt(0));
+    } else if (cls.equals(short.class) || cls.equals(Short.class)) {
+      return (I) new Short(Short.parseShort(id));
+    } else if (cls.equals(int.class) || cls.equals(Integer.class)) {
+      return (I) new Integer(Integer.parseInt(id));
+    } else if (cls.equals(long.class) || cls.equals(Long.class)) {
+      return (I) new Long(Long.parseLong(id));
+    } else if (cls.equals(float.class) || cls.equals(Float.class)) {
+      return (I) new Float(Float.parseFloat(id));
+    } else if (cls.equals(double.class) || cls.equals(Double.class)) {
+      return (I) new Double(Double.parseDouble(id));
+    } else if (cls.equals(String.class)) {
+      return (I) id;
+    }
+    
+    // Look for fromString(String) method
+    try {
+      Method fromString = cls.getMethod("fromString", String.class);
+      return (I) fromString.invoke(null, id);
+    } catch (NoSuchMethodException e) {
+      // no fromString(String) method
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      throw new RegenerationException("Could not call fromString(String) method", e);
+    }
+    
+    // Look for single-argument String constructor
+    try {
+      Constructor constructor = cls.getConstructor(String.class);
+      return (I) constructor.newInstance(id);
+    } catch (NoSuchMethodException e) {
+      throw new RegenerationException("Unable to convert id '" + id + "' to type '" + cls.getCanonicalName() + "'.");
+    } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+      throw new RegenerationException("Could not call single-argument String constructor", e);
+    }
   }
   
 }

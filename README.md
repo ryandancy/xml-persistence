@@ -59,7 +59,9 @@ top-level list of elements. In this case, the following attributes must be defin
 
 * `name` gives the name of the top-level tag
 * `idField`, which gives the name of a field in the class holding a unique ID whose `toString()`
-  method will be used to identify the element in the top-level list.
+  method will be used to identify the element in the top-level list. The field must be a
+  primitive, or must have a `fromString(String)` static method or a single String-argument
+  constructor.
 
 `toplevel=true` should be used when it is expected that the same object will be serialized
 multiple times; otherwise, multiple identical objects will be re-generated instead.

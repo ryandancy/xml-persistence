@@ -60,14 +60,12 @@ abstract class PersistRegenStrategy<T> {
    * 
    * @param state The global (for this regeneration) {@link RegenState}. Update its {@link RegenToplevelRegistry} with
    *  any new toplevel objects and retrieve new @{@link Persistable}-annotated elements from the {@link ToplevelList}.
-   * @param persistAnno The @{@link Persist} annotation applied to the field being returned.
    * @param toRegen The element from which to regenerate the object. Represents an instance of the class returned by
    *  {@link #getPersistingClass()}.
    * @return An object of {@link #getPersistingClass()} regenerated from {@code toRegen}.
    * @throws NullPointerException If any parameter is {@code null}.
    * @throws RegenerationException If an error is encountered when regenerating the object.
    */
-  public abstract T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen)
-      throws RegenerationException;
+  public abstract T regenerate(RegenState state, PersistedElement toRegen) throws RegenerationException;
   
 }

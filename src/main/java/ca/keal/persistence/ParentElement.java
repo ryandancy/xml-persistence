@@ -110,7 +110,7 @@ class ParentElement extends PersistedElement {
    */
   protected static <P extends ParentElement> P fromXmlElement(Element element, Function<String, P> constructor)
       throws RegenerationException {
-    if (!element.hasChildNodes()) {
+    if (!PersistenceUtil.elementHasChildren(element)) {
       throw new RegenerationException("Tried to get a ParentElement from its XML element, but it has no children!");
     }
     // You know what, we don't care if there's text content, we'll just ignore it
@@ -134,7 +134,7 @@ class ParentElement extends PersistedElement {
   private static PersistedElement createChildElement(Element child) throws RegenerationException {
     if (child.hasAttribute("null")) {
       return NullElement.fromXmlElement(child);
-    } else if (child.hasChildNodes()) {
+    } else if (PersistenceUtil.elementHasChildren(child)) {
       return ParentElement.fromXmlElement(child);
     } else {
       return TextElement.fromXmlElement(child);

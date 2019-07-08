@@ -25,7 +25,7 @@ class PrimitivePRStrategy<T> extends PersistRegenStrategy<T> {
   
   @Override
   @SuppressWarnings("unchecked")
-  public T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen) throws RegenerationException {
+  public T regenerate(RegenState state, PersistedElement toRegen) throws RegenerationException {
     if (!(toRegen instanceof TextElement)) {
       throw new RegenerationException("Need a TextElement to regenerate a primitive");
     }

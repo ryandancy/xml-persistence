@@ -6,6 +6,8 @@ import org.xmlunit.builder.DiffBuilder;
 import org.xmlunit.builder.Input;
 import org.xmlunit.diff.Diff;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -13,9 +15,11 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import java.io.File;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +45,11 @@ class XmlPersistorTest {
     }
   }
   
+  private Document load(String filePath) throws Exception {
+    DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+    return builder.parse(new File(filePath));
+  }
+  
   private void assertSame(Document testDoc, String controlLocation) {
     Source test = Input.fromDocument(testDoc).build();
     Source control = Input.fromFile(controlLocation).build();
@@ -56,7 +65,7 @@ class XmlPersistorTest {
   }
   
   // ==========================================================================================
-  // POSITIVE TESTS
+  // POSITIVE TESTS - toXml()
   
   @Persistable(toplevel=true, tag="PrimitivesOnlyTest", idField="id")
   @SuppressWarnings("unused")
@@ -314,6 +323,38 @@ class XmlPersistorTest {
   void persistingNullThrows() {
     XmlPersistor<PrimitivesOnlyTest> persistor = new XmlPersistor<>(PrimitivesOnlyTest.class);
     assertThrows(NullPointerException.class, () -> persistor.toXml(null));
+  }
+  
+  // ==========================================================================================
+  // POSITIVE TESTS - fromXml()
+  
+  @Persistable(toplevel=true, tag="hello", idField="id")
+  @SuppressWarnings("unused")
+  private static class PrimitivesOnlyRegenTest {
+    private final int id;
+    @Persist("boolean") private final boolean aBoolean;
+    @Persist("byte") private final byte aByte;
+    @Persist("short") private final short aShort;
+    @Persist("int") private final int anInt;
+    @Persist("long") private final long aLong;
+    @Persist("float") private final float aFloat;
+    @Persist("double") private final double aDouble;
+    @Persist("char") private final char aChar;
+    @Persist("string") private final String aString;
+    private PrimitivesOnlyRegenTest(int id, boolean a, byte b, short c, int d,
+                                    long e, float f, double g, char h, String i) {
+      this.id = id; aBoolean = a; aByte = b; aShort = c; anInt = d;
+      aLong = e; aFloat = f; aDouble = g; aChar = h; aString = i;
+    }
+  }
+  
+  @Test
+  void primitivesOnlyFromXml() throws Exception {
+    XmlPersistor<PrimitivesOnlyRegenTest> persistor = new XmlPersistor<>(PrimitivesOnlyRegenTest.class);
+    PrimitivesOnlyRegenTest control = new PrimitivesOnlyRegenTest(-1234, true, (byte) -24, (short) 634, -412,
+        29586112412421L, -41.6235f, 2014.1241, 'X', "Hello from the other side");
+    assertThat(persistor.fromXml(load("src/test/resources/primitives-only-regen-test.xml")))
+        .isEqualToComparingFieldByField(control);
   }
   
 }

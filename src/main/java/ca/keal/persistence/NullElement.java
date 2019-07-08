@@ -41,7 +41,7 @@ class NullElement extends PersistedElement {
    * @throws RegenerationException If the XML element has children, text, or bad attributes.
    */
   public static NullElement fromXmlElement(Element element) throws RegenerationException {
-    if (element.hasChildNodes()) {
+    if (PersistenceUtil.elementHasChildren(element)) {
       throw new RegenerationException("Tried to get a NullElement from its XML element, but it has children!");
     }
     if (element.getTextContent() != null && !element.getTextContent().isEmpty()) {
