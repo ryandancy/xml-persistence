@@ -28,8 +28,12 @@ class NullPRStrategy<T> extends PersistRegenStrategy<T> {
   }
   
   @Override
-  public T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen) {
-    throw new UnsupportedOperationException("Not yet implemented");
+  public T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen) throws RegenerationException {
+    if (!(toRegen instanceof NullElement)) {
+      throw new RegenerationException("NullPRStrategy can only regenerate from NullElements - attempted to regenerate " 
+          + "from '" + toRegen.getTag() + "', a '" + toRegen.getClass().getCanonicalName() + "'.");
+    }
+    return null; // intentional; the corresponding object is indeed null.
   }
   
 }

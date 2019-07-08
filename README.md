@@ -21,7 +21,7 @@ class Bar {
 }
 ```
 
-Calling `new XmlPersistor<>.toXml(new Foo())` will generate:
+Calling `new XmlPersistor<>(Foo.class).toXml(new Foo())` will generate:
 
 ```xml
 <?xml version="1.0" coding="utf-8"?>
@@ -44,7 +44,7 @@ This library serializes all persistable classes in the hierarchy marked with `to
 in a top-level element list called `<persisted>`. The root element is identified with the
 attribute `root=true`. Non-`toplevel` elements are serialized inside the tag of their parent. 
 
-## Planned API
+## API
 
 ### `@Persistable([boolean toplevel=false], [String name], [String idField])`
 
@@ -88,9 +88,13 @@ non-`@Persistable` class.
 #### `R fromXml(org.w3c.dom.Document doc)`
 
 Retrieves an `@Persistable(toplevel=true)` object of type `R` from the XML DOM document
-`doc`. `PersistenceException` is thrown if there are errors in the XML document or if there
+`doc`. `RegenerationException` is thrown if there are errors in the XML document or if there
 are mismatches such as the `root="true"` element of the document not being of type `R`.
 
 ### `PersistenceException`
 
 A runtime exception, this is thrown if there are errors in persisting the class structure.
+
+### `RegenerationException`
+
+A checked exception, this is throw if there are errors in regenerating the class structure.
