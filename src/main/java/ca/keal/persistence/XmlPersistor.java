@@ -2,6 +2,7 @@ package ca.keal.persistence;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -104,7 +105,30 @@ public class XmlPersistor<R> {
    * @throws RegenerationException If an error is encountered when regenerating the object.
    */
   public R fromXml(Document doc) throws RegenerationException {
+    if (doc == null) {
+      throw new NullPointerException("Cannot regenerate from a null Document");
+    }
+    
+    Element docRoot = doc.getDocumentElement();
+    if (!docRoot.getTagName().equals("persisted")) {
+      System.err.println("WARNING: root tag name is '" + docRoot.getTagName() + "', not 'persisted'.");
+    }
+    if (docRoot.hasAttributes()) {
+      System.err.println("WARNING: root tag has attributes for some reason.");
+    }
+    
     // TODO catch any PersistenceExceptions and throw RegenerationExceptions
+    
+    // Load everything into a ToplevelList
+    ToplevelList toplevelList = new ToplevelList();
+    for (int i = 0; i < docRoot.getChildNodes().getLength(); i++) { // for some reason NodeList isn't Iterable
+      Node childNode = docRoot.getChildNodes().item(i);
+      if (childNode instanceof Element) {
+        Element child = (Element) childNode;
+        toplevelList.addElement(ToplevelElement.fromXmlElement(child));
+      }
+    }
+    
     throw new UnsupportedOperationException("Not yet implemented");
   }
   

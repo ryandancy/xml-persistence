@@ -47,4 +47,22 @@ class TextElement extends PersistedElement {
     return element;
   }
   
+  /**
+   * Create a {@link TextElement} from a given XML element. The {@link TextElement} will have the same tag name
+   * and text content as the XML element.
+   * @param element An XML element in a valid format. It must have no children and no attributes.
+   * @return A {@link TextElement} representing the XML element.
+   * @throws RegenerationException If the XML element has children or attributes.
+   */
+  public static TextElement fromXmlElement(Element element) throws RegenerationException {
+    if (element.hasChildNodes()) {
+      throw new RegenerationException("Tried to get a TextElement from its XML element, but it has children!");
+    }
+    if (element.hasAttributes()) {
+      throw new RegenerationException("Tried to get a TextElement from its XML element, but it has attributes! " 
+          + element.getAttributes());
+    }
+    return new TextElement(element.getTagName(), element.getTextContent());
+  }
+  
 }

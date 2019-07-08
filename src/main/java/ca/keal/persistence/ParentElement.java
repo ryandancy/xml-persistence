@@ -2,10 +2,12 @@ package ca.keal.persistence;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * A {@link PersistedElement} which is a parent element of other {@link PersistedElement}s. This will be used to store
@@ -70,4 +72,56 @@ class ParentElement extends PersistedElement {
     }
     return element;
   }
+  
+  /**
+   * Create a {@link ParentElement} from a given XML element. The {@link ParentElement} will have the same tag name
+   * as the XML element, and each child element will be loaded in as well.
+   * @param element An XML element in a valid format. It must have no attributes and must have children.
+   * @return A {@link ParentElement} representing the XML element.
+   * @throws RegenerationException If the XML element has attributes, no children, or one of its children has an issue.
+   */
+  public static ParentElement fromXmlElement(Element element) throws RegenerationException {
+    if (element.hasAttributes()) {
+      throw new RegenerationException("Tried to get a ParentElement from its XML element, but it has attributes!");
+    }
+    return fromXmlElement(element, ParentElement::new);
+  }
+  
+  /**
+   * Same as {@link #fromXmlElement(Element)}, but does not check attributes and can create subclasses of
+   * {@link ParentElement} via a method reference. For use in {@link ToplevelElement}.
+   */
+  protected static <P extends ParentElement> P fromXmlElement(Element element, Function<String, P> constructor)
+      throws RegenerationException {
+    if (!element.hasChildNodes()) {
+      throw new RegenerationException("Tried to get a ParentElement from its XML element, but it has no children!");
+    }
+    // You know what, we don't care if there's text content, we'll just ignore it
+    
+    P parent = constructor.apply(element.getTagName());
+    
+    // Add all the children
+    for (int i = 0; i < element.getChildNodes().getLength(); i++) {
+      Node childNode = element.getChildNodes().item(i);
+      if (childNode instanceof Element) {
+        Element childElement = (Element) childNode;
+        PersistedElement child = createChildElement(childElement);
+        parent.addChild(child);
+      }
+    }
+    
+    return parent;
+  }
+  
+  /** Get a {@link PersistedElement} for a given child element. */
+  private static PersistedElement createChildElement(Element child) throws RegenerationException {
+    if (child.hasAttribute("null")) {
+      return NullElement.fromXmlElement(child);
+    } else if (child.hasChildNodes()) {
+      return ParentElement.fromXmlElement(child);
+    } else {
+      return TextElement.fromXmlElement(child);
+    } // no ToplevelElement call because a ToplevelElement can't be a child
+  }
+  
 }

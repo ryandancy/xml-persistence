@@ -85,4 +85,22 @@ class ToplevelElement extends ParentElement {
     return element;
   }
   
+  /**
+   * Create a {@link ToplevelElement} from a given XML element. The {@link ToplevelElement} will have the same tag name,
+   * ID, and root value as the element, and its child elements will be loaded in as well.
+   * @param element An XML element in a valid format. It must have an "id" attribute and children.
+   * @return A {@link ToplevelElement} representing the XML element.
+   * @throws RegenerationException If the XML element has improper attributes or no children, or a child is bad.
+   * @see ParentElement#fromXmlElement(Element)
+   */
+  public static ToplevelElement fromXmlElement(Element element) throws RegenerationException {
+    if (!element.hasAttribute("id")) {
+      throw new RegenerationException("Tried to get ToplevelElement from its XML, but there is no `id` attribute!");
+    }
+    String id = element.getAttribute("id");
+    ToplevelElement toplevel = ParentElement.fromXmlElement(element, tag -> new ToplevelElement(tag, id));
+    toplevel.setRoot(element.hasAttribute("root"));
+    return toplevel;
+  }
+  
 }

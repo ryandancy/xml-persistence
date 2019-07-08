@@ -32,4 +32,30 @@ class NullElement extends PersistedElement {
     return element;
   }
   
+  /**
+   * Create a {@link NullElement} from a given XML element. The {@link NullElement} will have the same tag name as the
+   * XML element.
+   * @param element An XML element in a valid format. It must have no children, no text, and exactly one attribute:
+   *  null="true".
+   * @return A {@link TextElement} representing the XML element.
+   * @throws RegenerationException If the XML element has children, text, or bad attributes.
+   */
+  public static NullElement fromXmlElement(Element element) throws RegenerationException {
+    if (element.hasChildNodes()) {
+      throw new RegenerationException("Tried to get a NullElement from its XML element, but it has children!");
+    }
+    if (element.getTextContent() != null && !element.getTextContent().isEmpty()) {
+      throw new RegenerationException("Tried to get a NullElement from its XML element, but it has text!");
+    }
+    if (!element.hasAttribute("null")) {
+      throw new RegenerationException(
+          "Tried to get a NullElement from its XML element, but there is no `null` attribute!");
+    }
+    if (element.getAttributes().getLength() > 1) {
+      throw new RegenerationException(
+          "Tried to get a NullElement from its XML element, but it has too many attributes!");
+    }
+    return new NullElement(element.getTagName());
+  }
+  
 }
