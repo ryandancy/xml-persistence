@@ -108,7 +108,7 @@ class XmlPersistorTest {
     @Persist("thing1") private final String thing1;
     @Persist("thing2") private final String thing2;
     
-    SimpleEmbedded(String thing1, String thing2) {
+    private SimpleEmbedded(String thing1, String thing2) {
       this.thing1 = thing1;
       this.thing2 = thing2;
     }
@@ -130,7 +130,7 @@ class XmlPersistorTest {
     
     @Persist("toplevelSide") private final DualCircularToplevelSide side;
     
-    DualCircularToplevelRoot(String idMe, String idSide) {
+    private DualCircularToplevelRoot(String idMe, String idSide) {
       this.id = idMe;
       this.side = new DualCircularToplevelSide(idSide, this);
     }
@@ -143,7 +143,7 @@ class XmlPersistorTest {
     
     @Persist("toplevelRoot") private final DualCircularToplevelRoot root;
     
-    DualCircularToplevelSide(String id, DualCircularToplevelRoot root) {
+    private DualCircularToplevelSide(String id, DualCircularToplevelRoot root) {
       this.id = id;
       this.root = root;
     }
@@ -166,7 +166,7 @@ class XmlPersistorTest {
     @Persist("heyLookItsMe") private final SingleCircularToplevelTest me;
     @Persist("dogInFrenchIs") private final String dog = "chien";
     
-    SingleCircularToplevelTest() {
+    private SingleCircularToplevelTest() {
       me = this;
     }
   }
@@ -209,7 +209,6 @@ class XmlPersistorTest {
   void nullThingsToXml() {
     XmlPersistor<NullThingsTest> persistor = new XmlPersistor<>(NullThingsTest.class);
     Document persisted = persistor.toXml(new NullThingsTest());
-    printDocument(persisted);
     assertSame(persisted, "src/test/resources/null-things-test.xml");
   }
   
@@ -355,6 +354,34 @@ class XmlPersistorTest {
         29586112412421L, -41.6235f, 2014.1241, 'X', "Hello from the other side");
     assertThat(persistor.fromXml(load("src/test/resources/primitives-only-regen-test.xml")))
         .isEqualToComparingFieldByField(control);
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="simpleEmbeddedTest", idField="id")
+  @SuppressWarnings("unused")
+  private static class SimpleEmbeddedRegenTest {
+    private final String id = "simpleEmbedded";
+    
+    @Persist("primitiveInt") private final int pint;
+    
+    @Persist("embedded1") private SimpleEmbedded e1;
+    @Persist("embedded2") private SimpleEmbedded e2;
+    
+    private SimpleEmbeddedRegenTest(int pint, SimpleEmbedded e1, SimpleEmbedded e2) {
+      this.pint = pint;
+      this.e1 = e1;
+      this.e2 = e2;
+    }
+  }
+  
+  @Test
+  void simpleEmbeddedFromXml() throws Exception {
+    XmlPersistor<SimpleEmbeddedRegenTest> persistor = new XmlPersistor<>(SimpleEmbeddedRegenTest.class);
+    SimpleEmbeddedRegenTest control = new SimpleEmbeddedRegenTest(1234,
+        new SimpleEmbedded("aaa", "bbb"), new SimpleEmbedded("ccc", "ddd"));
+    assertThat(persistor.fromXml(load("src/test/resources/simple-embedded-regen-test.xml")))
+        .isEqualToComparingFieldByFieldRecursively(control);
   }
   
 }
