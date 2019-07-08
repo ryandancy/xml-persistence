@@ -5,24 +5,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A {@link PersistenceStrategy} which persists objects marked @{@link Persistable}. This strategy will persist each
- * field in the given object, selecting and calling a {@link PersistenceStrategy} for each field. See
+ * A {@link PersistRegenStrategy} which persists objects marked @{@link Persistable}. This strategy will persist each
+ * field in the given object, selecting and calling a {@link PersistRegenStrategy} for each field. See
  * {@link #persist(PersistingState, Persist, Object)} for a more specific description of this strategy's functioning.
  * 
  * @param <T> The class which may be persisted by this strategy.
  * @see #persist(PersistingState, Persist, Object)
  */
-public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
+public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
   
-  /** Create a new {@link PersistablePersistStrategy} persisting the specified class. */
-  public PersistablePersistStrategy(Class<T> cls) {
+  /** Create a new {@link PersistablePRStrategy} persisting the specified class. */
+  public PersistablePRStrategy(Class<T> cls) {
     super(cls);
   }
   
   /**
-   * <p>Persist {@code toPersist}. This is done by choosing an appropriate {@link PersistenceStrategy} for each field in
+   * <p>Persist {@code toPersist}. This is done by choosing an appropriate {@link PersistRegenStrategy} for each field in
    * the class marked @{@link Persist}: if the field is a primitive or a {@code String},
-   * {@link PrimitivePersistStrategy} is used; else, {@link PersistablePersistStrategy} is used.</p>
+   * {@link PrimitivePRStrategy} is used; else, {@link PersistablePRStrategy} is used.</p>
    * 
    * <p>What is done with the element containing the persisted versions of each field depends on whether the class
    * returned by {@link #getPersistingClass()} is marked {@code @Persistable(toplevel=true)} or not. (It must be
@@ -149,17 +149,22 @@ public class PersistablePersistStrategy<T> extends PersistenceStrategy<T> {
     }
   }
   
-  /** Call the appropriate {@link PersistenceStrategy} given the field. This exists for generics reasons. */
+  /** Call the appropriate {@link PersistRegenStrategy} given the field. This exists for generics reasons. */
   private <F> PersistedElement callStrategy(Class<F> fieldCls, Field field, PersistingState state,
                                             Persist persistAnno, T toPersist) {
     try {
       @SuppressWarnings("unchecked") F value = (F) field.get(toPersist);
-      PersistenceStrategy<F> strategy = PersistenceUtil.pickStrategy(fieldCls, value);
+      PersistRegenStrategy<F> strategy = PersistenceUtil.pickStrategy(fieldCls, value);
       return strategy.persist(state, persistAnno, value);
     } catch (IllegalAccessException e) {
       throw new PersistenceException("Cannot persist field protected by access control: " + field.getName()
         + " in " + field.getDeclaringClass());
     }
+  }
+  
+  @Override
+  public T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen) {
+    throw new UnsupportedOperationException("Not yet implemented");
   }
   
 }

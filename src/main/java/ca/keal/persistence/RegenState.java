@@ -1,5 +1,7 @@
 package ca.keal.persistence;
 
+import org.w3c.dom.Document;
+
 /**
  * Encapsulates all state that is global to a single call to {@link XmlPersistor#fromXml(Document)}. Currently, this
  * includes the {@link ToplevelList} and the {@link RegenToplevelRegistry}.

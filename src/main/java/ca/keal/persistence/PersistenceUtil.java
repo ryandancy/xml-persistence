@@ -76,24 +76,24 @@ final class PersistenceUtil {
   }
   
   /**
-   * Pick an appropriate {@link PersistenceStrategy} to persist the given class and object and return it.
+   * Pick an appropriate {@link PersistRegenStrategy} to persist the given class and object and return it.
    */
-  static <R> PersistenceStrategy<R> pickStrategy(Class<R> cls, R object) {
+  static <R> PersistRegenStrategy<R> pickStrategy(Class<R> cls, R object) {
     if (object == null) {
-      return new NullPersistStrategy<>(cls);
+      return new NullPRStrategy<>(cls);
     }
     return pickStrategy(cls);
   }
   
   /**
-   * Pick an appropriate {@link PersistenceStrategy} to persist the given class and return it. This method will never
-   * return {@link NullPersistStrategy}.
+   * Pick an appropriate {@link PersistRegenStrategy} to persist the given class and return it. This method will never
+   * return {@link NullPRStrategy}.
    */
-  static <R> PersistenceStrategy<R> pickStrategy(Class<R> cls) {
+  static <R> PersistRegenStrategy<R> pickStrategy(Class<R> cls) {
     if (cls.isPrimitive() || cls.equals(String.class)) {
-      return new PrimitivePersistStrategy<>(cls);
+      return new PrimitivePRStrategy<>(cls);
     } else {
-      return new PersistablePersistStrategy<>(cls);
+      return new PersistablePRStrategy<>(cls);
     }
   }
   

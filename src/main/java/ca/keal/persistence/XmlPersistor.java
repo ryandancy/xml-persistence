@@ -14,6 +14,7 @@ import java.lang.annotation.Annotation;
  *  be @{@link Persistable} with {@code toplevel=true}.
  */
 // TODO add arrays and lists as "primitive" types / maybe with a different PersistStrategy
+// TODO should we *really* be using objenesis? like should we *really*? or should we require default constructors?
 public class XmlPersistor<R> {
   
   private static final String ROOT_ELEMENT_NAME = "persisted";
@@ -70,7 +71,7 @@ public class XmlPersistor<R> {
     
     // Persist the root element first
     PersistingState state = new PersistingState();
-    PersistenceStrategy<R> strategy = PersistenceUtil.pickStrategy(rootClass, root);
+    PersistRegenStrategy<R> strategy = PersistenceUtil.pickStrategy(rootClass, root);
     
     // We can do this because we checked that it's toplevel in the constructor
     TextElement idElement = (TextElement) strategy.persist(state, ROOT_PERSIST_ANNOTATION, root);
