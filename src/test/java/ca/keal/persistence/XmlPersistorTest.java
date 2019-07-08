@@ -384,4 +384,38 @@ class XmlPersistorTest {
         .isEqualToComparingFieldByFieldRecursively(control);
   }
   
+  // ==========================================================================================
+  
+  @Test
+  void dualCircularToplevelFromXml() throws Exception {
+    XmlPersistor<DualCircularToplevelRoot> persistor = new XmlPersistor<>(DualCircularToplevelRoot.class);
+    DualCircularToplevelRoot control = new DualCircularToplevelRoot("foo", "bar");
+    assertThat(persistor.fromXml(load("src/test/resources/dual-circular-toplevel-test.xml")))
+      .isEqualToComparingFieldByFieldRecursively(control);
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="singleCircle", idField="id")
+  @SuppressWarnings("unused")
+  private static class SingleCircularToplevelRegenTest {
+    private final String id = "foobar";
+    
+    @Persist("heyLookItsMe") private final SingleCircularToplevelRegenTest me;
+    @Persist("dogInFrenchIs") private final String once;
+    
+    private SingleCircularToplevelRegenTest(String told) {
+      me = this;
+      once = told;
+    }
+  }
+  
+  @Test
+  void singleCircularToplevelFromXml() throws Exception {
+    XmlPersistor<SingleCircularToplevelRegenTest> persistor = new XmlPersistor<>(SingleCircularToplevelRegenTest.class);
+    SingleCircularToplevelRegenTest control = new SingleCircularToplevelRegenTest("chien");
+    assertThat(persistor.fromXml(load("src/test/resources/single-circular-toplevel-test.xml")))
+      .isEqualToComparingFieldByFieldRecursively(control);
+  }
+  
 }
