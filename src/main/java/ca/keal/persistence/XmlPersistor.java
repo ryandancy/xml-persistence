@@ -140,7 +140,23 @@ public class XmlPersistor<R> {
       }
     }
     
-    throw new UnsupportedOperationException("Not yet implemented");
+    if (root == null) {
+      throw new RegenerationException("No root toplevel node");
+    }
+    
+    // Regenerate from the root
+    PersistRegenStrategy<R> strategy = PersistenceUtil.pickStrategy(rootClass, root);
+    R regenerated = strategy.regenerate(state, ROOT_PERSIST_ANNOTATION, root);
+    
+    // Warn if any toplevel isn't used
+    for (ItemID itemID : state.getToplevelList().getItemIDs()) {
+      if (!state.getToplevelRegistry().contains(itemID.getName(), itemID.getId())) {
+        System.err.println("Warning: unused toplevel element with tag name '" + itemID.getName()
+          + "' and id '");
+      }
+    }
+    
+    return regenerated;
   }
   
 }

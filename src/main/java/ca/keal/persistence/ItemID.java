@@ -16,12 +16,21 @@ class ItemID {
     this.name = name;
     this.id = id;
   }
-
+  
+  
+  public String getName() {
+    return name;
+  }
+  
+  public String getId() {
+    return id;
+  }
+  
   @Override
   public int hashCode() {
     return 37 * name.hashCode() * id.hashCode();
   }
-
+  
   @Override
   public boolean equals(Object obj) {
     if (!(obj instanceof ItemID)) return false;

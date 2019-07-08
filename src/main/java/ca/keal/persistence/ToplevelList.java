@@ -63,4 +63,11 @@ class ToplevelList {
     return idsToElements.values();
   }
   
+  /**
+   * @return A collection of the {@link ItemID}s registered in this {@link ToplevelList}.
+   */
+  public Collection<ItemID> getItemIDs() {
+    return idsToElements.keySet();
+  }
+  
 }

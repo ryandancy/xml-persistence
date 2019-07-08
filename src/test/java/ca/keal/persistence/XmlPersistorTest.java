@@ -6,8 +6,6 @@ import org.xmlunit.builder.DiffBuilder;
 import org.xmlunit.builder.Input;
 import org.xmlunit.diff.Diff;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -15,7 +13,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.File;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 
@@ -148,17 +145,6 @@ class XmlPersistorTest {
     XmlPersistor<DualCircularToplevelRoot> persistor = new XmlPersistor<>(DualCircularToplevelRoot.class);
     Document persisted = persistor.toXml(new DualCircularToplevelRoot("foo", "bar"));
     assertSame(persisted, "src/test/resources/dual-circular-toplevel-test.xml");
-  }
-  
-  @Test
-  void dualCircularToplevelFromXml() throws Exception {
-    XmlPersistor<DualCircularToplevelRoot> persistor = new XmlPersistor<>(DualCircularToplevelRoot.class);
-    File fXmlFile = new File("src/test/resources/dual-circular-toplevel-test.xml");
-    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-    Document doc = dBuilder.parse(fXmlFile);
-    DualCircularToplevelRoot regened = persistor.fromXml(doc);
-    printDocument(persistor.toXml(regened));
   }
   
   // ==========================================================================================
