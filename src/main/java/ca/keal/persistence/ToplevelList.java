@@ -5,38 +5,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The toplevel list of {@link ToplevelElement}s. Global to each call of {@link XmlPersistor#toXml}. This is simply a
- * list of toplevel elements (really a map) indexed by tag name and ID.
+ * The toplevel list of {@link ToplevelElement}s. Global to each call of {@link XmlPersistor#toXml} or
+ * {@link XmlPersistor#fromXml}. This is simply a list of toplevel elements (really a map) indexed by tag name and ID.
  */
 class ToplevelList {
-  
-  /** Simple POJO used as an index into {@link #idsToElements}. Encapsulates name + id. Neither may be null. */
-  private static class ItemID {
-    
-    private final String name;
-    private final String id;
-    
-    private ItemID(String name, String id) {
-      if (name == null || id == null) {
-        throw new NullPointerException("No null elements are allowed in the toplevel list");
-      }
-      this.name = name;
-      this.id = id;
-    }
-  
-    @Override
-    public int hashCode() {
-      return 37 * name.hashCode() * id.hashCode();
-    }
-  
-    @Override
-    public boolean equals(Object obj) {
-      if (!(obj instanceof ItemID)) return false;
-      ItemID itemId = (ItemID) obj;
-      return name.equals(itemId.name) && id.equals(itemId.id);
-    }
-    
-  }
   
   /**
    * The map backing this {@link ToplevelList}. Maps {@link ItemID}s to their corresponding {@link ToplevelElement}s

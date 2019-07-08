@@ -119,13 +119,23 @@ public class XmlPersistor<R> {
     
     // TODO catch any PersistenceExceptions and throw RegenerationExceptions
     
-    // Load everything into a ToplevelList
-    ToplevelList toplevelList = new ToplevelList();
+    // Load everything into the ToplevelList + find the root ToplevelElement
+    RegenState state = new RegenState();
+    ToplevelElement root = null;
+    
     for (int i = 0; i < docRoot.getChildNodes().getLength(); i++) { // for some reason NodeList isn't Iterable
       Node childNode = docRoot.getChildNodes().item(i);
       if (childNode instanceof Element) {
         Element child = (Element) childNode;
-        toplevelList.addElement(ToplevelElement.fromXmlElement(child));
+        ToplevelElement childToplevel = ToplevelElement.fromXmlElement(child); 
+        state.getToplevelList().addElement(childToplevel);
+        
+        if (childToplevel.isRoot()) {
+          if (root != null) {
+            throw new RegenerationException("Multiple toplevel nodes marked `root`");
+          }
+          root = childToplevel;
+        }
       }
     }
     
