@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * A {@link PersistedElement} which is a parent element of other {@link PersistedElement}s. This will be used to store
@@ -39,6 +40,22 @@ class ParentElement extends PersistedElement {
       throw new NullPointerException("Cannot add null child element");
     }
     children.add(child);
+  }
+  
+  /**
+   * Get a list of all child {@link PersistedElement}s with the given tag.
+   * @param tag The tag for which to search in child elements.
+   * @return A list of the child {@link PersistedElement}s whose tag equals the given tag.
+   * @throws NullPointerException If {@code tag} is {@code null}.
+   */
+  public List<PersistedElement> getChildrenByTag(String tag) {
+    if (tag == null) {
+      throw new NullPointerException("Cannot get children with null tag");
+    }
+    
+    return children.stream()
+        .filter(child -> tag.equals(child.getTag()))
+        .collect(Collectors.toList());
   }
   
   /**

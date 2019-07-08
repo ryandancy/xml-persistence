@@ -42,7 +42,11 @@ generate the original `Foo` object.
 
 This library serializes all persistable classes in the hierarchy marked with `toplevel=true`
 in a top-level element list called `<persisted>`. The root element is identified with the
-attribute `root=true`. Non-`toplevel` elements are serialized inside the tag of their parent. 
+attribute `root=true`. Non-`toplevel` elements are serialized inside the tag of their parent.
+
+Note that no constructor will be called when regenerating an object, so make sure that any
+fields *not* annotated `@Persist` can be reverted to their default values. (The `idField` in
+toplevel objects will be set to the ID in the XML when regenerating.)
 
 ## API
 

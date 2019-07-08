@@ -86,9 +86,20 @@ final class PersistenceUtil {
   }
   
   /**
-   * Pick an appropriate {@link PersistRegenStrategy} to persist the given class and return it. This method will never
-   * return {@link NullPRStrategy}.
+   * Pick an apppropriate {@link PersistRegenStrategy} to regenerate the given class and element and return it.
    */
+  static <R> PersistRegenStrategy<R> pickStrategy(Class<R> cls, PersistedElement element) {
+    if (element instanceof NullElement) {
+      return new NullPRStrategy<>(cls);
+    }
+    return pickStrategy(cls);
+  }
+  
+  /**
+   * Pick an appropriate {@link PersistRegenStrategy} to persist or regenerate the given class and return it. This
+   * method will never return {@link NullPRStrategy}.
+   */
+  // useful for future list support
   static <R> PersistRegenStrategy<R> pickStrategy(Class<R> cls) {
     if (cls.isPrimitive() || cls.equals(String.class)) {
       return new PrimitivePRStrategy<>(cls);

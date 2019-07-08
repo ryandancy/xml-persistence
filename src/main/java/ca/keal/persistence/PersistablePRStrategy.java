@@ -142,16 +142,16 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
             + persistAnno.value() + "' seen twice in '" + getPersistingClass().getCanonicalName() + "'.");
         }
         
-        PersistedElement child = callStrategy(field.getType(), field, state, persistAnno, toPersist);
+        PersistedElement child = persistWithStrategy(field.getType(), field, state, persistAnno, toPersist);
         parent.addChild(child);
         persistValuesSeen.add(persistAnno.value());
       }
     }
   }
   
-  /** Call the appropriate {@link PersistRegenStrategy} given the field. This exists for generics reasons. */
-  private <F> PersistedElement callStrategy(Class<F> fieldCls, Field field, PersistingState state,
-                                            Persist persistAnno, T toPersist) {
+  /** Persist with the appropriate {@link PersistRegenStrategy} given the field. This exists for generics reasons. */
+  private <F> PersistedElement persistWithStrategy(Class<F> fieldCls, Field field, PersistingState state,
+                                                   Persist persistAnno, T toPersist) {
     try {
       @SuppressWarnings("unchecked") F value = (F) field.get(toPersist);
       PersistRegenStrategy<F> strategy = PersistenceUtil.pickStrategy(fieldCls, value);
@@ -162,9 +162,168 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
     }
   }
   
+  /**
+   * <p>Regenerate an instance of the class returned by {@link #getPersistingClass()} from XML elements.</p>
+   * 
+   * <p>There are three possible cases when this class is called. {@code toRegen} may be either a {@link TextElement}
+   * representing a reference to a {@link ToplevelElement} (and therefore containing its ID), a {@link ToplevelElement},
+   * or a regular {@link ParentElement}.</p>
+   * 
+   * <p>In the first case, we first check to see if the corresponding object has already been regenerated. If not, we
+   * generate it from the corresponding {@link ToplevelElement}.</p>
+   * 
+   * <p>Then, in all cases, we iterate through the fields marked @{@link Persist} and regenerate each using an
+   * appropriate strategy.</p>
+   * 
+   * @param state The global (for this regeneration) {@link RegenState}. Update its {@link RegenToplevelRegistry} with
+   *  any new toplevel objects and retrieve new @{@link Persistable}-annotated elements from the {@link ToplevelList}.
+   * @param persistAnno The @{@link Persist} annotation applied to the field being returned.
+   * @param toRegen The element from which to regenerate the object. Represents an instance of the class returned by
+   *  {@link #getPersistingClass()}.
+   * @return An object of {@link #getPersistingClass()} regenerated from {@code toRegen}.
+   * @throws RegenerationException If an error is encountered in regenerating the object.
+   */
   @Override
-  public T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen) {
-    throw new UnsupportedOperationException("Not yet implemented");
+  public T regenerate(RegenState state, Persist persistAnno, PersistedElement toRegen) throws RegenerationException {
+    if (!persistAnno.value().equals(toRegen.getTag())) {
+      throw new RegenerationException("Tried to regenerate a <" + toRegen.getTag()
+          + "> element, but the @Persist tag was different: " + persistAnno.value());
+    }
+    
+    Persistable persistable = PersistenceUtil.verifyAndGetPersistable(getPersistingClass());
+    
+    // 3 cases: either it's a toplevel parent, an inner-level parent, or a toplevel reference
+    
+    if (toRegen instanceof TextElement) {
+      // TextElement containing reference to ToplevelElement
+      return regenerateReference(state, persistable, (TextElement) toRegen);
+    } else if (toRegen instanceof ToplevelElement) {
+      return regenerateToplevel(state, persistable, (ToplevelElement) toRegen);
+    } else if (toRegen instanceof ParentElement) {
+      return regenerateNonToplevel(state, persistable, (ParentElement) toRegen);
+    } else {
+      // Wrong kind of element
+      throw new RegenerationException("PersistablePRStrategy cannot regenerate from "
+          + toRegen.getClass().getCanonicalName());
+    }
+  }
+  
+  /** Regenerate from a {@link TextElement} containing a reference to a {@link ToplevelElement}. */
+  private T regenerateReference(RegenState state, Persistable persistable, TextElement toRegen)
+      throws RegenerationException {
+    if (!persistable.toplevel()) {
+      throw new RegenerationException("Encountered toplevel reference to non-toplevel persistable class");
+    }
+    
+    String name = persistable.tag();
+    String id = toRegen.getText();
+    
+    if (state.getToplevelRegistry().contains(name, id)) { // Try to find if we've already regenerated it
+      return state.getToplevelRegistry().get(name, id);
+    } else if (state.getToplevelList().contains(name, id)) { // Regenerate from the toplevel element
+      ToplevelElement element = state.getToplevelList().getElement(name, id);
+      return regenerateToplevel(state, persistable, element);
+    } else {
+      // Reference doesn't exist
+      throw new RegenerationException("Toplevel element with tag name '" + name + "' and id '" + id
+          + "' is referenced, but doesn't exist.");
+    }
+  }
+  
+  /** Regenerate from a {@link ToplevelElement}, registering the result. */
+  private T regenerateToplevel(RegenState state, Persistable persistable, ToplevelElement toRegen)
+      throws RegenerationException {
+    if (!persistable.toplevel()) {
+      throw new RegenerationException("Cannot regenerate toplevel element to non-toplevel @Persistable class");
+    }
+    
+    // Instantiate the element
+    T regenerated = instantiatePersistingClass(state);
+    
+    // Set the idField
+    try {
+      Field idField = getPersistingClass().getDeclaredField(persistable.idField());
+      idField.setAccessible(true);
+      idField.set(regenerated, toRegen.getId());
+    } catch (NoSuchFieldException e) {
+      // once again, this was verified in verifyAndGetPersistable
+      System.err.println("ERROR: THIS SHOULD NOT HAPPEN. The idField specified in the @Persistable annotation of '"
+          + getPersistingClass().getCanonicalName() + "' does not exist despite passing previous tests. There is a "
+          + "bug in PersistenceUtil.verifyAndGetPersistable() - please tell developer.");
+      throw new RegenerationException("This should not happen. idField of '" + getPersistingClass().getCanonicalName()
+          + "' does not exist despite being verified previously.");
+    } catch (IllegalAccessException e) {
+      throw new RegenerationException("Could not regenerate ID field '" + persistable.idField() + "' in "
+          + getPersistingClass().getCanonicalName(), e);
+    }
+    
+    // Register it
+    state.getToplevelRegistry().register(toRegen.getTag(), toRegen.getId(), regenerated);
+    
+    // Fill it in
+    // We register before we fill in the object so that if any field references this object, it can find it
+    fillInRegenerated(state, regenerated, toRegen);
+    
+    return regenerated;
+  }
+  
+  /** Regenerate from a non-toplevel {@link ParentElement}. */
+  private T regenerateNonToplevel(RegenState state, Persistable persistable, ParentElement toRegen)
+      throws RegenerationException {
+    if (persistable.toplevel()) {
+      throw new RegenerationException("Cannot regenerate non-toplevel element to toplevel @Persistable class");
+    }
+    
+    // Just regenerate it
+    T regenerated = instantiatePersistingClass(state);
+    fillInRegenerated(state, regenerated, toRegen);
+    return regenerated;
+  }
+  
+  /** Regenerate each field marked @Persist inside {@code regenerated}. */
+  private void fillInRegenerated(RegenState state, T regenerated, ParentElement toRegen) throws RegenerationException {
+    // Persist each @Persist field; keep track of what child elements we use
+    List<PersistedElement> usedChildren = new ArrayList<>();
+    
+    for (Field field : getAllDeclaredFields()) {
+      Persist persistAnno = field.getAnnotation(Persist.class);
+      if (persistAnno == null) continue;
+      
+      // Find the corresponding child element
+      List<PersistedElement> childrenWithTag = toRegen.getChildrenByTag(persistAnno.value());
+      
+      if (childrenWithTag.isEmpty()) {
+        throw new RegenerationException("Cannot find element with tag: '" + persistAnno.value() + "'.");
+      } else if (childrenWithTag.size() > 1) {
+        throw new RegenerationException("Multiple elements with same parent with tag: '" + persistAnno.value() + "'.");
+      }
+      
+      PersistedElement child = childrenWithTag.get(0);
+      usedChildren.add(child);
+      
+      // Regenerate the child into the object
+      try {
+        field.set(regenerated, PersistenceUtil.pickStrategy(getPersistingClass(), child)
+            .regenerate(state, persistAnno, child));
+      } catch (IllegalAccessException e) {
+        throw new RegenerationException("Could not access field '" + field.getName() + "' in '"
+            + getPersistingClass().getCanonicalName() + "' to regenerate it.", e);
+      }
+    }
+    
+    // Warn if there are unused fields
+    for (PersistedElement child : toRegen.getChildren()) {
+      if (!usedChildren.contains(child)) {
+        System.out.println("Warning: <" + toRegen.getTag()
+            + "> element contains child element that does not correspond to any @Persist-annotated field in "
+            + getPersistingClass().getCanonicalName() + ": '" + child.getTag() + "'.");
+      }
+    }
+  }
+  
+  /** Instantiate an instance of the class returned by {@link #getPersistingClass()} using Objenesis. */
+  private T instantiatePersistingClass(RegenState state) {
+    return state.getObjenesis().newInstance(getPersistingClass());
   }
   
 }
