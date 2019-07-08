@@ -418,4 +418,53 @@ class XmlPersistorTest {
       .isEqualToComparingFieldByFieldRecursively(control);
   }
   
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="nullThings", idField="id")
+  @SuppressWarnings({"unused", "UnusedAssignment"})
+  private static class NullThingsRegenTest {
+    private final String id = "foo";
+    @Persist("nullNonToplevel") private NullThingRegen thing1 = new NullThingRegen("foo");
+    @Persist("nonNullNonToplevel") private NullThingRegen thing2;
+    @Persist("nullToplevel") private ToplevelNullThingRegen tlThing1 = new ToplevelNullThingRegen(2141);
+    @Persist("nonNullToplevel") private ToplevelNullThingRegen tlThing2;
+    private NullThingsRegenTest(NullThingRegen thing2, ToplevelNullThingRegen tlThing2) {
+      this.thing1 = null;
+      this.thing2 = thing2;
+      this.tlThing1 = null;
+      this.tlThing2 = tlThing2;
+    }
+  }
+  
+  @Persistable
+  @SuppressWarnings({"unused", "UnusedAssignment"})
+  private static class NullThingRegen {
+    @Persist("thisIsNullString") private String nullThing = "ob";
+    @Persist("thisHasValueNull") private String notNull;
+    private NullThingRegen(String notNull) {
+      this.nullThing = null;
+      this.notNull = notNull;
+    }
+  }
+  
+  @Persistable(toplevel=true, tag="somethingElseNull", idField="myId")
+  @SuppressWarnings({"unused", "UnusedAssignment"})
+  private static class ToplevelNullThingRegen {
+    private final int myId = 20141;
+    @Persist("someInteger") private int whatever;
+    @Persist("somethingNull") private String imNull = "this is not null";
+    private ToplevelNullThingRegen(int whatever) {
+      this.whatever = whatever;
+      this.imNull = null;
+    }
+  }
+  
+  @Test
+  void nullThingsFromXml() throws Exception {
+    XmlPersistor<NullThingsRegenTest> persistor = new XmlPersistor<>(NullThingsRegenTest.class);
+    NullThingsRegenTest control = new NullThingsRegenTest(new NullThingRegen("null"), new ToplevelNullThingRegen(-1));
+    assertThat(persistor.fromXml(load("src/test/resources/null-things-test.xml")))
+        .isEqualToComparingFieldByFieldRecursively(control);
+  }
+  
 }
