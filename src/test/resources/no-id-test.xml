@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <persisted>
   <thing root="true" id="123">
-    <foo>bar</foo>
+    <foo>1001</foo>
     <thingy>456</thingy>
+    <embedded>
+      <bar>quux</bar>
+    </embedded>
   </thing>
   <thing2>
     <foo>baz</foo>

@@ -325,24 +325,28 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
   @SuppressWarnings("unchecked")
   private static <I> I conformIdTo(Class<I> cls, String id) throws RegenerationException {
     // Primitives + String
-    if (cls.equals(boolean.class) || cls.equals(Boolean.class)) {
-      return (I) Boolean.valueOf(Boolean.parseBoolean(id));
-    } else if (cls.equals(byte.class) || cls.equals(Byte.class)) {
-      return (I) new Byte(Byte.parseByte(id));
-    } else if (cls.equals(char.class) || cls.equals(Character.class)) {
-      return (I) new Character(id.charAt(0));
-    } else if (cls.equals(short.class) || cls.equals(Short.class)) {
-      return (I) new Short(Short.parseShort(id));
-    } else if (cls.equals(int.class) || cls.equals(Integer.class)) {
-      return (I) new Integer(Integer.parseInt(id));
-    } else if (cls.equals(long.class) || cls.equals(Long.class)) {
-      return (I) new Long(Long.parseLong(id));
-    } else if (cls.equals(float.class) || cls.equals(Float.class)) {
-      return (I) new Float(Float.parseFloat(id));
-    } else if (cls.equals(double.class) || cls.equals(Double.class)) {
-      return (I) new Double(Double.parseDouble(id));
-    } else if (cls.equals(String.class)) {
-      return (I) id;
+    try {
+      if (cls.equals(boolean.class) || cls.equals(Boolean.class)) {
+        return (I) Boolean.valueOf(Boolean.parseBoolean(id));
+      } else if (cls.equals(byte.class) || cls.equals(Byte.class)) {
+        return (I) new Byte(Byte.parseByte(id));
+      } else if (cls.equals(char.class) || cls.equals(Character.class)) {
+        return (I) new Character(id.charAt(0));
+      } else if (cls.equals(short.class) || cls.equals(Short.class)) {
+        return (I) new Short(Short.parseShort(id));
+      } else if (cls.equals(int.class) || cls.equals(Integer.class)) {
+        return (I) new Integer(Integer.parseInt(id));
+      } else if (cls.equals(long.class) || cls.equals(Long.class)) {
+        return (I) new Long(Long.parseLong(id));
+      } else if (cls.equals(float.class) || cls.equals(Float.class)) {
+        return (I) new Float(Float.parseFloat(id));
+      } else if (cls.equals(double.class) || cls.equals(Double.class)) {
+        return (I) new Double(Double.parseDouble(id));
+      } else if (cls.equals(String.class)) {
+        return (I) id;
+      }
+    } catch (NumberFormatException e) {
+      throw new RegenerationException("Could not conform id '" + id + "' to '" + cls.getCanonicalName() + "'.", e);
     }
     
     // Look for fromString(String) method

@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <persisted>
   <thing root="true" id="123">
-    <thingy>456</thingy>
+    <foo>1001</foo>
+    <thingy>this id should not be a string</thingy>
     <embedded>
       <bar>quux</bar>
     </embedded>
   </thing>
-  <thing2 id="456">
+  <thing2 id="this id should not be a string">
     <foo>baz</foo>
   </thing2>
 </persisted>

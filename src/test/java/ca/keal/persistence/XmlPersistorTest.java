@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 // TODO - test with @Persist Integers/other boxed types (null?)
 class XmlPersistorTest {
   
+  // TODO test with no-@Persist objects
+  
   /** A utility for printing a given Document. */
   private void printDocument(Document doc) {
     try {
@@ -474,8 +476,9 @@ class XmlPersistorTest {
   @SuppressWarnings("unused")
   private static class CommonRegenTest {
     private final int id = 123;
-    @Persist("foo") private final String bar = "bar";
+    @Persist("foo") private final int bar = 1001;
     @Persist("thingy") private final CommonRegenMid test = new CommonRegenMid();
+    @Persist("embedded") private final CommonRegenEmbedded embedded = new CommonRegenEmbedded();
   }
   
   @Persistable(toplevel=true, tag="thing2", idField="id")
@@ -483,6 +486,13 @@ class XmlPersistorTest {
   private static class CommonRegenMid {
     private final int id = 456;
     @Persist("foo") private final String baz = "baz";
+  }
+  
+  @Persistable
+  @SuppressWarnings("unused")
+  private static class CommonRegenEmbedded {
+    private final int id = 789; // shouldn't actually be used
+    @Persist("bar") private final String quux = "quux";
   }
   
   @Test
@@ -493,8 +503,6 @@ class XmlPersistorTest {
     assertThat(e).hasMessageContaining("No root");
   }
   
-  // ==========================================================================================
-  
   @Test
   void regenMultipleRootsThrows() {
     XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
@@ -502,8 +510,6 @@ class XmlPersistorTest {
         () -> persistor.fromXml(load("src/test/resources/multiple-roots-test.xml")));
     assertThat(e).hasMessageContaining("Multiple").hasMessageContaining("root");
   }
-  
-  // ==========================================================================================
   
   @Test
   void regenRootButNoIdThrows() {
@@ -513,8 +519,6 @@ class XmlPersistorTest {
     assertThat(e).hasMessageContaining("id");
   }
   
-  // ==========================================================================================
-  
   @Test
   void missingFieldThrows() {
     XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
@@ -523,14 +527,77 @@ class XmlPersistorTest {
     assertThat(e).hasMessageContaining("Cannot find element with tag");
   }
   
-  // ==========================================================================================
-  
   @Test
   void duplicateFieldThrows() {
     XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
     RegenerationException e = assertThrows(RegenerationException.class,
         () -> persistor.fromXml(load("src/test/resources/duplicate-field-test.xml")));
     assertThat(e).hasMessageContaining("Multiple elements with same parent with tag");
+  }
+  
+  @Test
+  void embeddingToplevelThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/embed-toplevel-test.xml")));
+    assertThat(e).hasMessage("Cannot regenerate non-toplevel element to toplevel @Persistable class");
+  }
+  
+  @Test
+  void toplevelingEmbeddedThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/toplevel-embedded-test.xml")));
+    assertThat(e).hasMessageContaining("toplevel reference to non-toplevel persistable class");
+  }
+  
+  @Test
+  void nonexistentToplevelIdThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/nonexistent-toplevel-id-test.xml")));
+    assertThat(e).hasMessageContaining("id").hasMessageContaining("doesn't exist");
+  }
+  
+  @Test
+  void wrongIdTypeThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/wrong-id-type-test.xml")));
+    assertThat(e).hasMessageContaining("Could not conform");
+  }
+  
+  @Test
+  void wrongPrimitiveFieldTypeThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/wrong-primitive-type-test.xml")));
+    assertThat(e).hasMessageContaining("Bad number format");
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="charTest", idField="id")
+  @SuppressWarnings("unused")
+  private static class CharTest {
+    private final double id = -41.5;
+    @Persist("char") char myChar;
+  }
+  
+  @Test
+  void emptyCharTypeThrows() {
+    XmlPersistor<CharTest> persistor = new XmlPersistor<>(CharTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/empty-char-test.xml")));
+    assertThat(e).hasMessage("Trying to regenerate char with more than one character, or none");
+  }
+  
+  @Test
+  void overOneCharInCharTypeThrows() {
+    XmlPersistor<CharTest> persistor = new XmlPersistor<>(CharTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/too-long-char-test.xml")));
+    assertThat(e).hasMessage("Trying to regenerate char with more than one character, or none");
   }
   
 }
