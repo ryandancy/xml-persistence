@@ -118,45 +118,48 @@ public class XmlPersistor<R> {
       System.err.println("WARNING: root tag has attributes for some reason.");
     }
     
-    // TODO catch any PersistenceExceptions and throw RegenerationExceptions
-    
-    // Load everything into the ToplevelList + find the root ToplevelElement
-    RegenState state = new RegenState();
-    ToplevelElement root = null;
-    
-    for (int i = 0; i < docRoot.getChildNodes().getLength(); i++) { // for some reason NodeList isn't Iterable
-      Node childNode = docRoot.getChildNodes().item(i);
-      if (childNode instanceof Element) {
-        Element child = (Element) childNode;
-        ToplevelElement childToplevel = ToplevelElement.fromXmlElement(child); 
-        state.getToplevelList().addElement(childToplevel);
-        
-        if (childToplevel.isRoot()) {
-          if (root != null) {
-            throw new RegenerationException("Multiple toplevel nodes marked `root`");
+    try {
+      // Load everything into the ToplevelList + find the root ToplevelElement
+      RegenState state = new RegenState();
+      ToplevelElement root = null;
+      
+      for (int i = 0; i < docRoot.getChildNodes().getLength(); i++) { // for some reason NodeList isn't Iterable
+        Node childNode = docRoot.getChildNodes().item(i);
+        if (childNode instanceof Element) {
+          Element child = (Element) childNode;
+          ToplevelElement childToplevel = ToplevelElement.fromXmlElement(child);
+          state.getToplevelList().addElement(childToplevel);
+          
+          if (childToplevel.isRoot()) {
+            if (root != null) {
+              throw new RegenerationException("Multiple toplevel nodes marked `root`");
+            }
+            root = childToplevel;
           }
-          root = childToplevel;
         }
       }
-    }
-    
-    if (root == null) {
-      throw new RegenerationException("No root toplevel node");
-    }
-    
-    // Regenerate from the root
-    PersistRegenStrategy<R> strategy = PersistenceUtil.pickStrategy(rootClass, root);
-    R regenerated = strategy.regenerate(state, root);
-    
-    // Warn if any toplevel isn't used
-    for (ItemID itemID : state.getToplevelList().getItemIDs()) {
-      if (!state.getToplevelRegistry().contains(itemID.getName(), itemID.getId())) {
-        System.err.println("Warning: unused toplevel element with tag name '" + itemID.getName()
-          + "' and id '");
+      
+      if (root == null) {
+        throw new RegenerationException("No root toplevel node");
       }
+      
+      // Regenerate from the root
+      PersistRegenStrategy<R> strategy = PersistenceUtil.pickStrategy(rootClass, root);
+      R regenerated = strategy.regenerate(state, root);
+      
+      // Warn if any toplevel isn't used
+      for (ItemID itemID : state.getToplevelList().getItemIDs()) {
+        if (!state.getToplevelRegistry().contains(itemID.getName(), itemID.getId())) {
+          System.err.println("Warning: unused toplevel element with tag name '" + itemID.getName()
+              + "' and id '");
+        }
+      }
+      
+      return regenerated;
+    } catch (PersistenceException e) {
+      // some common persist/regen methods throw PersistenceExceptions, so we just rethrow as RegenerationExceptions
+      throw new RegenerationException(e.getMessage(), e.getCause());
     }
-    
-    return regenerated;
   }
   
 }

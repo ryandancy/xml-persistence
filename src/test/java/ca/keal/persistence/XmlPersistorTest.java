@@ -467,4 +467,70 @@ class XmlPersistorTest {
         .isEqualToComparingFieldByFieldRecursively(control);
   }
   
+  // ==========================================================================================
+  // NEGATIVE TESTS - fromXml()
+  
+  @Persistable(toplevel=true, tag="thing", idField="id")
+  @SuppressWarnings("unused")
+  private static class CommonRegenTest {
+    private final int id = 123;
+    @Persist("foo") private final String bar = "bar";
+    @Persist("thingy") private final CommonRegenMid test = new CommonRegenMid();
+  }
+  
+  @Persistable(toplevel=true, tag="thing2", idField="id")
+  @SuppressWarnings("unused")
+  private static class CommonRegenMid {
+    private final int id = 456;
+    @Persist("foo") private final String baz = "baz";
+  }
+  
+  @Test
+  void regenNoRootThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/no-root-test.xml")));
+    assertThat(e).hasMessageContaining("No root");
+  }
+  
+  // ==========================================================================================
+  
+  @Test
+  void regenMultipleRootsThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/multiple-roots-test.xml")));
+    assertThat(e).hasMessageContaining("Multiple").hasMessageContaining("root");
+  }
+  
+  // ==========================================================================================
+  
+  @Test
+  void regenRootButNoIdThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/no-id-test.xml")));
+    assertThat(e).hasMessageContaining("id");
+  }
+  
+  // ==========================================================================================
+  
+  @Test
+  void missingFieldThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/missing-field-test.xml")));
+    assertThat(e).hasMessageContaining("Cannot find element with tag");
+  }
+  
+  // ==========================================================================================
+  
+  @Test
+  void duplicateFieldThrows() {
+    XmlPersistor<CommonRegenTest> persistor = new XmlPersistor<>(CommonRegenTest.class);
+    RegenerationException e = assertThrows(RegenerationException.class,
+        () -> persistor.fromXml(load("src/test/resources/duplicate-field-test.xml")));
+    assertThat(e).hasMessageContaining("Multiple elements with same parent with tag");
+  }
+  
 }

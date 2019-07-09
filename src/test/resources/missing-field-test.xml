@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persisted>
+  <thing root="true" id="123">
+    <thingy>456</thingy>
+  </thing>
+  <thing2 id="456">
+    <foo>baz</foo>
+  </thing2>
+</persisted>
