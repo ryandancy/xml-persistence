@@ -192,8 +192,14 @@ public class PersistablePRStrategy<T> extends PersistRegenStrategy<T> {
     // 3 cases: either it's a toplevel parent, an inner-level parent, or a toplevel reference
     
     if (toRegen instanceof TextElement) {
-      // TextElement containing reference to ToplevelElement
-      return regenerateReference(state, persistable, (TextElement) toRegen);
+      TextElement textElement = (TextElement) toRegen;
+      if (textElement.getText().isEmpty()) {
+        // Empty ParentElement representing embedded object with no @Persist fields
+        return regenerateNonToplevel(state, persistable, new ParentElement(textElement.getTag()));
+      } else {
+        // TextElement containing reference to ToplevelElement
+        return regenerateReference(state, persistable, textElement);
+      }
     } else if (toRegen instanceof ToplevelElement) {
       return regenerateToplevel(state, persistable, (ToplevelElement) toRegen);
     } else if (toRegen instanceof ParentElement) {

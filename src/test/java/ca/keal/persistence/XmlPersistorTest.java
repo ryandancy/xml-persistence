@@ -25,9 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 // TODO - test with @Persist Integers/other boxed types (null?)
+// TODO test failure with empty string/null ID
 class XmlPersistorTest {
-  
-  // TODO test with no-@Persist objects
   
   /** A utility for printing a given Document. */
   private void printDocument(Document doc) {
@@ -212,6 +211,46 @@ class XmlPersistorTest {
     XmlPersistor<NullThingsTest> persistor = new XmlPersistor<>(NullThingsTest.class);
     Document persisted = persistor.toXml(new NullThingsTest());
     assertSame(persisted, "src/test/resources/null-things-test.xml");
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="noPersistFields", idField="id")
+  @SuppressWarnings("unused")
+  private static class SimpleNoPersistFieldsTest {
+    private final String id = "hello";
+    private int dontPersist;
+  }
+  
+  @Test
+  void simpleNoPersistFieldsToXml() {
+    XmlPersistor<SimpleNoPersistFieldsTest> persistor = new XmlPersistor<>(SimpleNoPersistFieldsTest.class);
+    Document persisted = persistor.toXml(new SimpleNoPersistFieldsTest());
+    assertSame(persisted, "src/test/resources/simple-no-persist-fields-test.xml");
+  }
+  
+  // ==========================================================================================
+  
+  @Persistable(toplevel=true, tag="embeddedNoPersistFields", idField="schmoe")
+  @SuppressWarnings("unused")
+  private static class EmbeddedNoPersistFieldsTest {
+    private String schmoe = "joe";
+    @Persist("embedded1") private EmbeddedNoPersistFields e1;
+    @Persist("embedded2") private EmbeddedNoPersistFields e2;
+  }
+  
+  @Persistable
+  @SuppressWarnings("unused")
+  private static class EmbeddedNoPersistFields {}
+  
+  @Test
+  void embeddedNoPersistFieldsToXml() {
+    XmlPersistor<EmbeddedNoPersistFieldsTest> persistor = new XmlPersistor<>(EmbeddedNoPersistFieldsTest.class);
+    EmbeddedNoPersistFieldsTest test = new EmbeddedNoPersistFieldsTest();
+    test.e1 = new EmbeddedNoPersistFields();
+    test.e2 = new EmbeddedNoPersistFields();
+    Document persisted = persistor.toXml(test);
+    assertSame(persisted, "src/test/resources/embedded-no-persist-fields-test.xml");
   }
   
   // ==========================================================================================
@@ -466,6 +505,26 @@ class XmlPersistorTest {
     XmlPersistor<NullThingsRegenTest> persistor = new XmlPersistor<>(NullThingsRegenTest.class);
     NullThingsRegenTest control = new NullThingsRegenTest(new NullThingRegen("null"), new ToplevelNullThingRegen(-1));
     assertThat(persistor.fromXml(load("src/test/resources/null-things-test.xml")))
+        .isEqualToComparingFieldByFieldRecursively(control);
+  }
+  
+  // ==========================================================================================
+  
+  @Test
+  void simpleNoPersistFieldsFromXml() throws Exception {
+    XmlPersistor<SimpleNoPersistFieldsTest> persistor = new XmlPersistor<>(SimpleNoPersistFieldsTest.class);
+    SimpleNoPersistFieldsTest control = new SimpleNoPersistFieldsTest();
+    assertThat(persistor.fromXml(load("src/test/resources/simple-no-persist-fields-test.xml")))
+        .isEqualToComparingFieldByFieldRecursively(control);
+  }
+  
+  @Test
+  void embeddedNoPersistFieldsFromXml() throws Exception {
+    XmlPersistor<EmbeddedNoPersistFieldsTest> persistor = new XmlPersistor<>(EmbeddedNoPersistFieldsTest.class);
+    EmbeddedNoPersistFieldsTest control = new EmbeddedNoPersistFieldsTest();
+    control.e1 = new EmbeddedNoPersistFields();
+    control.e2 = new EmbeddedNoPersistFields();
+    assertThat(persistor.fromXml(load("src/test/resources/embedded-no-persist-fields-test.xml")))
         .isEqualToComparingFieldByFieldRecursively(control);
   }
   

@@ -93,9 +93,9 @@ class ParentElement extends PersistedElement {
   /**
    * Create a {@link ParentElement} from a given XML element. The {@link ParentElement} will have the same tag name
    * as the XML element, and each child element will be loaded in as well.
-   * @param element An XML element in a valid format. It must have no attributes and must have children.
+   * @param element An XML element in a valid format. It must not have attributes.
    * @return A {@link ParentElement} representing the XML element.
-   * @throws RegenerationException If the XML element has attributes, no children, or one of its children has an issue.
+   * @throws RegenerationException If the XML element has attributes, or one of its children has an issue.
    */
   public static ParentElement fromXmlElement(Element element) throws RegenerationException {
     if (element.hasAttributes()) {
@@ -110,9 +110,6 @@ class ParentElement extends PersistedElement {
    */
   protected static <P extends ParentElement> P fromXmlElement(Element element, Function<String, P> constructor)
       throws RegenerationException {
-    if (!PersistenceUtil.elementHasChildren(element)) {
-      throw new RegenerationException("Tried to get a ParentElement from its XML element, but it has no children!");
-    }
     // You know what, we don't care if there's text content, we'll just ignore it
     
     P parent = constructor.apply(element.getTagName());

@@ -45,8 +45,9 @@ in a top-level element list called `<persisted>`. The root element is identified
 attribute `root=true`. Non-`toplevel` elements are serialized inside the tag of their parent.
 
 Note that no constructor will be called when regenerating an object, so make sure that any
-fields *not* annotated `@Persist` can be reverted to their default values. (The `idField` in
-toplevel objects will be set to the ID in the XML when regenerating.)
+fields *not* annotated `@Persist` can be reverted to their default values as if they were never
+initialized at all - primitive types will be set to `0` and objects to `null`. (The `idField`
+in toplevel objects will be set to the ID in the XML when regenerating.)
 
 ## API
 
